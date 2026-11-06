@@ -1,0 +1,43 @@
+# FAQ and troubleshooting
+
+English · [Русский](ru/faq.md)
+
+## What a message means
+
+| Message | What to do |
+|---|---|
+| "Not enough munitions…" | craft more or make the salvo smaller ([munitions](munitions.md)) |
+| "… has not been spotted…" | find them with your own eyes or a projectile camera, or have your team spot them ([spotting](rules.md#spotting)) |
+| "No room for a launcher…" | the projectile comes in from afar; to watch the launch, move to open ground |
+| "Launch failed: the world near the target is not loaded" | the munition was returned; try again |
+| "No target found" | the target is farther than 400 blocks or nothing is under the reticle: strike from the map |
+| "… cannot fly this route…" | remove or move route points |
+| "The designator is for operators only…" | the world owner set it up that way |
+| "Too many strikes in progress…" | the world owner set a limit: wait for impacts or [abort](designator.md#abort) |
+| "Mission given to launchers…" | [launchers](launcher.md#mission) are linked to the designator; unlink them with RMB to make it fire by itself |
+
+## Troubleshooting
+
+**A server will not let you in: different mod versions.** Download the same jar the server has from the
+[Releases](https://github.com/zentixua/incoming/releases) list: choose the exact version used by the server.
+The latest release is for updating the server and all clients together.
+
+**The map is empty far away.** Far terrain needs LOD Server Support on the server and your client, Voxy, or Distant
+Horizons; without them only loaded chunks are shown. Voxy shows only what you have seen: in single-player run
+`/voxy import current` once. You can still strike there. Installed LOD Server Support before this
+version? Run `/lss clearcache` once on that server.
+
+**No sound from the mod.** Check the Ambient/Environment slider.
+
+**The game stutters during a strike.** If only the picture stutters, lower "Mushroom cloud, dust wall and pall"
+or try without shaders. If mobs and redstone slow down for everyone, reduce simultaneous strikes, especially in
+unexplored areas. The owner can also adjust [world settings](settings.md#world-settings); slower destruction gives
+the rest of the game more time. Memory needs depend on your modpack.
+
+**A launcher or SAM does not fire.** RMB on it with an empty hand shows why. A SAM needs open sky, missiles on its rails and
+a player nearby; it does not shoot down its own side's projectiles, ICBMs or Grad rockets.
+
+**The camera says "Nothing in flight".** The camera shows only your own projectiles that are already launched.
+
+**A strike hit your own base.** A blast hurts everyone: check the target on the console before firing. "Around me"
+strikes where you stand.

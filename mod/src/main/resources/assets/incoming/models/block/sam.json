@@ -1,0 +1,12 @@
+{
+  "parent": "minecraft:block/cube",
+  "textures": {
+    "particle": "incoming:block/sam_side",
+    "down": "incoming:block/sam_base",
+    "up": "incoming:block/sam_top",
+    "north": "incoming:block/sam_radar",
+    "south": "incoming:block/sam_radar",
+    "east": "incoming:block/sam_radar",
+    "west": "incoming:block/sam_radar"
+  }
+}

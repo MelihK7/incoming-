@@ -1,0 +1,541 @@
+# Build, unit tests and GameTest (server with Create, Sable, Aeronautics from Modrinth); jar in run artifacts.
+# Check changed areas: tools-only (tools/, except GameTest mods) and text-only (docs/, *.md) edits
+# skip mod build/GameTest (tools/replayscan replay analysis and tools/stand scene bench have their own build and
+# unit tests); store pages and their scripts run only the store checks; changes to mod,
+# GameTest mods or CI run full checks. Jar build, unit tests (two machines, parallel JVMs) and GameTest shards on six machines
+# run side by side (devtest GameTestShards). Combined result: “Итог”.
+# A main push or release whose tree a successful same-repository run already checked in full (the PR's merge
+# commit is the squash result when main did not move) reuses that run's jar instead of building and testing the
+# same files again (tools/ci_reuse.py).
+# Open Skies pack and Almighty game-master bridge have separate repositories (zentixua/open-skies, zentixua/almighty).
+# Manual run on main (or claude/release-* to release exactly a tested commit) with release=true:
+# full checks, then GitHub release v<mod_version> with this jar and docs/releases/<mod_version>.md notes.
+name: build
+
+# Each commit checked once: branches via pull_request (decides merge), main via push.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      release:
+        description: Publish release v<mod_version> (only main or claude/release-*)
+        type: boolean
+        default: false
+      # Repeat flaky test on GitHub, not laptop: each of six machines runs matching batches
+      # gametest_repeat times, each in a new world (tools/ci_repeat.sh runs and summarizes).
+      gametest_only:
+        description: Only GameTest batches whose full name matches regex (flake rerun); empty — all
+        type: string
+        default: ''
+      gametest_repeat:
+        description: Number of runs for these batches on each of six machines
+        type: number
+        default: 1
+
+# Push cancels previous build on same branch; manual release has its own group, unaffected by main push.
+# Main pushes have separate groups too: next push (often tools/docs only, no mod build) would cancel previous
+# build, leaving mod-changing main commit without a jar (scene bench base is latest main jar: on 25.10 this
+# canceled builds #466, #468 and #469, making bench compare against main without them).
+concurrency:
+  group: ${{ github.event_name == 'workflow_dispatch' && format('release-{0}', github.run_id) || github.ref == 'refs/heads/main' && format('main-{0}', github.sha) || format('build-{0}', github.ref) }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  # Commit changes: PR against base (first parent of CI-tested merge is base), main push
+  # against previous main. Manual run or unknown base: full checks; unknown paths too.
+  changes:
+    name: Что изменилось
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: read
+    outputs:
+      reuse: ${{ steps.reuse.outputs.run }}
+      store: ${{ steps.diff.outputs.store }}
+      mod: ${{ steps.diff.outputs.mod }}
+      rig: ${{ steps.diff.outputs.rig }}
+      replayscan: ${{ steps.diff.outputs.replayscan }}
+      lookgate: ${{ steps.diff.outputs.lookgate }}
+      stand: ${{ steps.diff.outputs.stand }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 2
+      - name: Release preflight
+        if: github.event_name == 'workflow_dispatch' && inputs.release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 tools/release_checks.py preflight
+      - name: Changed paths
+        id: diff
+        env:
+          BEFORE: ${{ github.event.before }}
+        run: |
+          case "$GITHUB_EVENT_NAME" in
+            pull_request) base=HEAD^1 ;;
+            push) base=$BEFORE; git fetch --no-tags --depth=1 origin "$base" || base= ;;
+            *) base= ;;
+          esac
+          if [ -z "$base" ]; then
+            mod=true; rig=true; replayscan=true; lookgate=true; stand=true; store=true
+            echo "Full checks ($GITHUB_EVENT_NAME)" >> "$GITHUB_STEP_SUMMARY"
+          else
+            mod=false; rig=false; replayscan=false; lookgate=false; stand=false; store=false
+            # --no-renames: moving out of mod/ is also deletion within mod/.
+            files=$(git diff --name-only --no-renames "$base" HEAD)
+            while IFS= read -r f; do
+              case "$f" in
+                '') ;;
+                mod/gradlew|mod/gradle/*) mod=true; replayscan=true; stand=true ;;
+                # Probe log lines parsed by tools/look_gate/check.py.
+                mod/src/devtest/java/ua/zentix/incoming/scenario/ProbeScenario.java) mod=true; lookgate=true ;;
+                tools/release_checks.py|tools/prepare_publish.py|tools/test_release_checks.py|tools/ci_reuse.py|tools/test_ci_reuse.py) mod=true; rig=true ;;
+                mod/*|tools/fetch_runtime_mods.py|tools/paths.py|tools/clean_install.py) mod=true ;;
+                tools/rig_procs.sh|tools/test_rig_procs.sh|tools/gpu_lease.sh|tools/test_gpu_lease.sh|tools/laptop_job.sh|tools/sandbox.sh|tools/test_sandbox.sh|tools/nested_kwin.sh|tools/stress.sh|tools/mp_scenario.sh) rig=true ;;
+                tools/replayscan/*) replayscan=true ;;
+                # prod_client.py prepares look-gate client instance copy (no Dynamic FPS idle; tested there too).
+                tools/look_gate/*|tools/media/*|tools/prod_client.py) lookgate=true ;;
+                tools/stand/*) stand=true ;;
+                # Store publishing (publish.yml) and the pages and gallery it uploads (guide images too): test_store*.py only.
+                .github/scripts/*|.github/workflows/publish.yml|docs/store/*|docs/media/*|docs/guide/*|README.md|README.ru.md) store=true ;;
+                .github/*) mod=true; rig=true; replayscan=true; lookgate=true; stand=true; store=true ;;
+                tools/*|docs/*|*.md|.claude/*|.gitignore) ;;
+                *) mod=true ;;
+              esac
+            done <<< "$files"
+            { echo "Mod (build, unit tests, GameTest): $mod; rig shutdown: $rig; replay analysis: $replayscan; look gate: $lookgate; scene bench: $stand; store pages: $store"; echo; echo '```'; echo "$files"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          fi
+          echo "mod=$mod" >> "$GITHUB_OUTPUT"
+          echo "rig=$rig" >> "$GITHUB_OUTPUT"
+          echo "replayscan=$replayscan" >> "$GITHUB_OUTPUT"
+          echo "lookgate=$lookgate" >> "$GITHUB_OUTPUT"
+          echo "stand=$stand" >> "$GITHUB_OUTPUT"
+          echo "store=$store" >> "$GITHUB_OUTPUT"
+      # Main push or release: the same tree may already have passed every mod check.
+      - name: Already checked tree
+        id: reuse
+        if: steps.diff.outputs.mod == 'true' && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.release && inputs.gametest_only == ''))
+        env:
+          GH_TOKEN: ${{ github.token }}
+        # An API failure only costs the full checks, not the run.
+        run: python3 tools/ci_reuse.py find "$(git rev-parse 'HEAD^{tree}')" >> "$GITHUB_OUTPUT" || echo 'run=' >> "$GITHUB_OUTPUT"
+
+  build:
+    name: Сборка
+    needs: changes
+    if: needs.changes.outputs.mod == 'true' && needs.changes.outputs.reuse == ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: mod
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+
+      # Only this job writes main's Gradle cache (GameTest shards read it): six ~1.3 GB copies would
+      # evict each other from repository cache.
+      - uses: gradle/actions/setup-gradle@v5
+
+      # Prepare GameTest launch (server classpath, assets) here too: setup-gradle removes untouched task files from cache.
+      # Unit tests run in their own job beside this one, so the clean installation starts as soon as the jar exists.
+      - name: Build
+        run: ./gradlew assemble prepareGameTestServerRun --console=plain
+
+      - uses: actions/upload-artifact@v6
+        with:
+          name: incoming-jar
+          path: mod/build/libs/*.jar
+          if-no-files-found: error
+
+      # Marks this tree as built here; the run's success (all checks) makes it reusable (tools/ci_reuse.py).
+      - name: Tested tree marker
+        run: |
+          tree=$(git rev-parse 'HEAD^{tree}')
+          echo "$GITHUB_SHA" > build/tested-tree
+          echo "tree=$tree" >> "$GITHUB_OUTPUT"
+        id: tree
+      - uses: actions/upload-artifact@v6
+        with:
+          name: tested-tree-${{ steps.tree.outputs.tree }}
+          path: mod/build/tested-tree
+          if-no-files-found: error
+
+      - name: Failure reports
+        if: failure()
+        uses: actions/upload-artifact@v6
+        with:
+          name: reports
+          path: mod/build/reports/
+          if-no-files-found: ignore
+
+  # Unit tests in parallel JVMs: in one JVM they took 8 of the 12 CI minutes, two classes alone 6 of them. The three
+  # slowest classes (@Tag("slow")) get a machine and a JVM each, the rest share another machine's four (build.gradle).
+  unit:
+    name: Юнит-тесты (${{ matrix.group }})
+    needs: changes
+    if: needs.changes.outputs.mod == 'true' && needs.changes.outputs.reuse == ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - group: slow
+            forks: 3
+          - group: rest
+            forks: 4
+    defaults:
+      run:
+        working-directory: mod
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+
+      # Only the build job writes main's Gradle cache.
+      - uses: gradle/actions/setup-gradle@v5
+        with:
+          cache-read-only: true
+
+      - name: Unit tests
+        run: ./gradlew check -PtestGroup=${{ matrix.group }} -PtestForks=${{ matrix.forks }} --console=plain
+
+      - name: Failure reports
+        if: failure()
+        uses: actions/upload-artifact@v6
+        with:
+          name: reports-${{ matrix.group }}
+          path: mod/build/reports/
+          if-no-files-found: ignore
+
+  # Same tree already passed every mod check in a successful run: its jar becomes this run's incoming-jar
+  # (scene bench `ci:main`, release), without building and testing the same files again.
+  reuse:
+    name: Сборка из проверенного прогона
+    needs: changes
+    if: needs.changes.outputs.reuse != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/download-artifact@v7
+        with:
+          name: incoming-jar
+          path: jar
+          run-id: ${{ needs.changes.outputs.reuse }}
+          github-token: ${{ github.token }}
+      - name: Source run
+        env:
+          RUN: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ needs.changes.outputs.reuse }}
+        run: |
+          ls jar
+          echo "Tree $(echo '${{ github.sha }}' | cut -c1-8) was built and checked in full by $RUN; its jar is reused." >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v6
+        with:
+          name: incoming-jar
+          path: jar/*.jar
+          if-no-files-found: error
+
+  # Store pages, their assembly and publishing scripts (publish.yml); no Java, seconds.
+  store:
+    name: Страницы магазинов
+    needs: changes
+    if: needs.changes.outputs.store == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+      - name: Store draft regression checks
+        run: python3 -m unittest discover -s .github/scripts -p 'test_store*.py' -v
+
+  clean_install:
+    name: Clean NeoForge installation
+    needs: [changes, build]
+    if: needs.changes.outputs.mod == 'true' && needs.changes.outputs.reuse == ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: astral-sh/setup-uv@v6
+      - uses: actions/download-artifact@v7
+        with:
+          name: incoming-jar
+          path: mod/build/libs
+      - name: Production jar on a clean server and client
+        env:
+          LIBGL_ALWAYS_SOFTWARE: 'true'
+          GALLIUM_DRIVER: llvmpipe
+          ALSOFT_DRIVERS: 'null'
+          PIPEWIRE_REMOTE: incoming-no-audio
+          PULSE_SERVER: unix:/nonexistent/incoming-no-audio
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y xvfb libgl1-mesa-dri libopenal1
+          python3 tools/clean_install.py mod/build/libs/incoming-*.jar --client
+      - name: Clean installation logs
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: logs-clean-install
+          path: |
+            mod/run/clean-install-*/**/*.log
+            mod/run/clean-install-*/**/crash-reports/*.txt
+          if-no-files-found: ignore
+
+  gametest:
+    name: GameTest ${{ matrix.part }}/${{ strategy.job-total }}
+    needs: changes
+    if: needs.changes.outputs.mod == 'true' && needs.changes.outputs.reuse == ''
+    runs-on: ubuntu-latest
+    timeout-minutes: ${{ inputs.gametest_only != '' && 120 || 25 }}
+    strategy:
+      # Failed shard does not stop others: all failures in one run.
+      fail-fast: false
+      matrix:
+        part: [1, 2, 3, 4, 5, 6]
+    defaults:
+      run:
+        working-directory: mod
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: gradle/actions/setup-gradle@v5
+        with:
+          cache-read-only: true
+
+      - name: GameTest mods
+        uses: actions/cache@v5
+        with:
+          path: mod/run/ci-mods
+          key: runtime-mods-${{ hashFiles('tools/fetch_runtime_mods.py') }}
+      - run: python3 ../tools/fetch_runtime_mods.py run/ci-mods
+
+      - name: GameTest
+        env:
+          ONLY: ${{ inputs.gametest_only }}
+          REPEAT: ${{ inputs.gametest_repeat || 1 }}
+          SHARD: ${{ matrix.part }}/${{ strategy.job-total }}
+        run: |
+          if [ -z "$ONLY" ]; then
+            ./gradlew runGameTestServer -PmcModsDir=run/ci-mods -PgametestShard=$SHARD --console=plain
+            grep -E 'All [0-9]+ required tests passed' run/gametest/logs/latest.log
+            exit
+          fi
+          # Repeat: all matching batches on this machine, REPEAT times, each in a new world; failures do not stop repeats;
+          # regex matching no batches also fails (“All 0 required tests passed” does not count).
+          passed=0
+          for i in $(seq "$REPEAT"); do
+            if ./gradlew runGameTestServer -PmcModsDir=run/ci-mods "-PgametestOnly=$ONLY" --console=plain --quiet \
+                && grep -qE 'All [1-9][0-9]* required tests passed' run/gametest/logs/latest.log; then
+              passed=$((passed + 1))
+            else
+              cp run/gametest/logs/latest.log "run/gametest/logs/failed-$i.log" 2>/dev/null || true
+              grep -E 'failed|::' run/gametest/logs/latest.log | grep -iE 'fail|exception' | head -5
+            fi
+          done
+          echo "GameTest repeat: «$ONLY» passed $passed of $REPEAT (part $SHARD)" | tee -a "$GITHUB_STEP_SUMMARY"
+          [ "$passed" = "$REPEAT" ]
+
+      - name: Failure logs
+        if: failure()
+        uses: actions/upload-artifact@v6
+        with:
+          name: logs-gametest-${{ matrix.part }}
+          path: mod/run/gametest/logs/
+          if-no-files-found: ignore
+
+  # Rig/multiplayer processes stop entirely without orphans (tools/rig_procs.sh), ~4 s; GPU belongs to one session,
+  # waiters in order (tools/gpu_lease.sh); sandbox effect latency/mode mods (tools/test_sandbox.sh); no Java
+  # or mods.
+  rig:
+    name: Остановка проверок
+    needs: changes
+    if: needs.changes.outputs.rig == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+      - name: Rig shutdown
+        timeout-minutes: 2
+        run: tools/test_rig_procs.sh
+      - name: GPU lease
+        timeout-minutes: 2
+        run: tools/test_gpu_lease.sh
+      - name: Sandbox without client
+        timeout-minutes: 1
+        run: tools/test_sandbox.sh
+      - name: Release workflow regression checks
+        run: python3 -m unittest discover -s tools -p 'test_release_checks.py' -v
+      - name: Checked-tree reuse
+        run: python3 -m unittest discover -s tools -p 'test_ci_reuse.py' -v
+
+  # Flashback replay analysis (tools/replayscan): analysis-mod build and unit tests, no game.
+  replayscan:
+    name: Разбор повторов
+    needs: changes
+    if: needs.changes.outputs.replayscan == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+      # Only mod build writes Gradle cache (same NeoForge and Minecraft).
+      - uses: gradle/actions/setup-gradle@v5
+        with:
+          cache-read-only: true
+      - name: Build and unit tests
+        run: mod/gradlew -p tools/replayscan build --console=plain
+
+  # Visual/audio look-gate run valid only with undeafened hearing and scenes at reference game time
+  # (tools/look_gate/check.py, from client log); no Java/game, seconds.
+  lookgate:
+    name: Шлагбаум
+    needs: changes
+    if: needs.changes.outputs.lookgate == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+      - name: Look-gate run validity
+        run: python3 -m unittest discover -s tools/look_gate -p 'test_*.py' -v
+      - name: Page-media content regressions
+        run: python3 -m unittest discover -s tools/media -p 'test_*.py' -v
+
+  # Scene bench (tools/stand): harness-mod build/unit tests, parsing, planning and gate (test_gate.py), no game;
+  # bench itself captured on laptop (stand.py pr), verdict is “Стенд сцен” commit status, not this job.
+  stand:
+    name: "Стенд: сборка и шлагбаум"
+    needs: changes
+    if: needs.changes.outputs.stand == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+      # Only mod build writes Gradle cache (same NeoForge and Minecraft).
+      - uses: gradle/actions/setup-gradle@v5
+        with:
+          cache-read-only: true
+      - name: Harness build and unit tests
+        run: mod/gradlew -p tools/stand build --console=plain
+      - name: Parsing, planning and look gate
+        run: python3 -m unittest discover -s tools/stand -p 'test_*.py' -v
+
+  lss_gametest:
+    name: LSS GameTest ${{ matrix.version }}
+    needs: changes
+    if: needs.changes.outputs.mod == 'true' && needs.changes.outputs.reuse == ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        # Pinned compile API and the newer supported runtime; no client/GPU required.
+        version: [ydDRzPcM, jxJ4956L]
+    defaults:
+      run:
+        working-directory: mod
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: gradle/actions/setup-gradle@v5
+        with:
+          cache-read-only: true
+      - name: GameTest mods
+        uses: actions/cache@v5
+        with:
+          path: mod/run/ci-mods
+          key: runtime-mods-${{ hashFiles('tools/fetch_runtime_mods.py') }}
+      - run: python3 ../tools/fetch_runtime_mods.py run/ci-mods
+      - name: LSS store and nuclear settlement integration
+        run: |
+          ./gradlew runGameTestServer -PmcModsDir=run/ci-mods -PwithLss -PlssTestVersion=${{ matrix.version }} '-PgametestOnly=lss_.*' --console=plain
+          grep -E 'All [1-9][0-9]* required tests passed' run/gametest/logs/latest.log
+      - name: LSS integration logs
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: logs-lss-${{ matrix.version }}
+          path: mod/run/gametest/logs/
+          if-no-files-found: ignore
+
+  # One status per commit: everything required passed; unnecessary checks skipped.
+  ci:
+    name: Итог
+    needs: [changes, build, unit, gametest, lss_gametest, clean_install, reuse, store, rig, replayscan, lookgate, stand]
+    # Runs after failed/skipped/canceled jobs too: skipped jobs count as success, so “Итог” skipped
+    # in a canceled run would be green without build/GameTest — instead it runs and fails in canceled runs.
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Required checks passed
+        run: |
+          echo 'changes: ${{ needs.changes.result }}; build: ${{ needs.build.result }}; unit tests: ${{ needs.unit.result }}; GameTest: ${{ needs.gametest.result }}; LSS integration: ${{ needs.lss_gametest.result }}; clean install: ${{ needs.clean_install.result }}; reused checked run: ${{ needs.reuse.result }}; store pages: ${{ needs.store.result }}; rig shutdown: ${{ needs.rig.result }}; replay analysis: ${{ needs.replayscan.result }}; look gate: ${{ needs.lookgate.result }}; scene bench: ${{ needs.stand.result }}'
+          [ '${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') }}' = false ]
+          # Release: every check ran here, except mod checks reused from the run that passed them on this very tree.
+          if [ '${{ github.event_name == 'workflow_dispatch' && inputs.release }}' = true ]; then
+            for result in '${{ needs.store.result }}' '${{ needs.rig.result }}' '${{ needs.replayscan.result }}' '${{ needs.lookgate.result }}' '${{ needs.stand.result }}'; do
+              [ "$result" != skipped ]
+            done
+            [ '${{ needs.reuse.result }}' = success ] || \
+              [ '${{ needs.build.result }} ${{ needs.unit.result }} ${{ needs.gametest.result }} ${{ needs.lss_gametest.result }} ${{ needs.clean_install.result }}' = 'success success success success success' ]
+          fi
+
+  release:
+    name: Релиз
+    needs: ci
+    # !cancelled(): a reused release skips build/unit/GameTest, and the implicit success() also checks
+    # those transitive needs, so without it the release job is skipped even when “Итог” is green.
+    if: ${{ !cancelled() && needs.ci.result == 'success' && github.event_name == 'workflow_dispatch' && inputs.release && inputs.gametest_only == '' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/claude/release-')) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/download-artifact@v7
+        with:
+          name: incoming-jar
+          path: mod/build/libs
+      - name: Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          v=$(sed -n 's/^mod_version=//p' mod/gradle.properties)
+          gh release create "v$v" "mod/build/libs/incoming-$v.jar" --target "$GITHUB_SHA" \
+            --title "Incoming $v" --notes-file "docs/releases/$v.md"

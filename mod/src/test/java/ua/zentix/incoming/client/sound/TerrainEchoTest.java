@@ -1,0 +1,162 @@
+package ua.zentix.incoming.client.sound;
+
+import org.junit.jupiter.api.Test;
+import ua.zentix.incoming.nuclear.model.BlastModel;
+import ua.zentix.incoming.client.far.Sightline;
+import ua.zentix.incoming.nuclear.model.FrontProfile;
+
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+/** Echo from the terrain: where, when and how much quieter than a direct blow. */
+class TerrainEchoTest {
+    private static final double C = FrontProfile.SOUND_SPEED;
+    /** An explosion, the front of which travels at the speed of sound, the pressure is like 1/r. */
+    private static final TerrainEcho.Blast SOUND = new TerrainEcho.Blast() {
+        @Override
+        public double arrivalTicks(double blocks) {
+            return blocks / C;
+        }
+
+        @Override
+        public double pressure(double blocks) {
+            return 1 / Math.max(1, blocks);
+        }
+    };
+
+    /** Plain at 64 and cliff in the east: rise to 100 blocks between x0 and x0 + 200. */
+    private static Sightline.Heights cliff(double x0) {
+        return (x, z) -> x < x0 ? 64 : x < x0 + 200 ? 64 + (x - x0) / 2 : 164;
+    }
+
+    private static List<TerrainEcho.Reflection> east(Sightline.Heights h, double bx, double by) {
+        List<TerrainEcho.Reflection> out = new ArrayList<>();
+        TerrainEcho.ray(h, 0, TerrainEcho.RAYS, TerrainEcho.RANGE, 0, 66, 0, bx, by, 0, SOUND, out);
+        return out;
+    }
+
+    private static double total(List<TerrainEcho.Reflection> list) {
+        return list.stream().mapToDouble(TerrainEcho.Reflection::energy).sum();
+    }
+
+    @Test
+    void cliffBehindTheListenerEchoesWithTheGeometricDelay() {
+        // explosion in 3 km in the west, cliff in 400–600 blocks in the east: echo comes from the east
+        List<TerrainEcho.Reflection> all = TerrainEcho.trace(cliff(400), 0, 66, 0, -3000, 65, 0, SOUND);
+        TerrainEcho.Reflection top = all.stream().max(Comparator.comparingDouble(TerrainEcho.Reflection::energy)).orElseThrow();
+        assertEquals(0, EchoMix.wrap(top.azimuth() + 0.3) - 0.3, 0.1, "the strongest echo is from the east");
+        assertTrue(top.x() >= 400 && top.x() <= 600, "from the slope: " + top.x());
+        double r1 = Math.sqrt(Math.pow(top.x() + 3000, 2) + Math.pow(top.y() - 65, 2) + top.z() * top.z());
+        double r2 = Math.sqrt(top.x() * top.x() + Math.pow(top.y() - 66, 2) + top.z() * top.z());
+        double re = Math.sqrt(3000 * 3000 + 1);
+        assertEquals((r1 + r2 - re) / C, top.delay(), 1e-6, "delay - an extra path at the speed of sound");
+        assertEquals(r1 + r2 - re, top.extraPath(), 1e-6);
+        assertEquals(2 * top.x(), top.extraPath(), 20, "behind the ear there is an extra path - there and back");
+        assertTrue(top.energy() > 1e-3 && top.energy() <= Math.pow(10, TerrainEcho.CAP_DB / 10) + 1e-9, "energy " + top.energy());
+    }
+
+    @Test
+    void delayFollowsTheGameFrontNotJustTheSoundSpeed() {
+        // the front of the game at the epicenter is slower than the sound: at the slope it is 30 tick later than at the ear in sound
+        TerrainEcho.Blast late = new TerrainEcho.Blast() {
+            @Override
+            public double arrivalTicks(double blocks) {
+                return blocks / C + (blocks > 3200 ? 30 : 0);
+            }
+
+            @Override
+            public double pressure(double blocks) {
+                return 1 / blocks;
+            }
+        };
+        List<TerrainEcho.Reflection> out = new ArrayList<>();
+        TerrainEcho.ray(cliff(400), 0, TerrainEcho.RAYS, TerrainEcho.RANGE, 0, 66, 0, -3000, 65, 0, late, out);
+        List<TerrainEcho.Reflection> plain = east(cliff(400), -3000, 65);
+        assertFalse(out.isEmpty());
+        for (TerrainEcho.Reflection r : out) {
+            TerrainEcho.Reflection same = plain.stream().filter(p -> p.x() == r.x()).findFirst().orElseThrow();
+            assertEquals(same.delay() + 30, r.delay(), 1e-6);
+        }
+    }
+
+    @Test
+    void flatGroundBarelyEchoesASurfaceBurst() {
+        // flat ground: the front slides along it and is almost not reflected back
+        List<TerrainEcho.Reflection> all = TerrainEcho.trace((x, z) -> 64, 0, 66, 0, -3000, 64, 0, SOUND);
+        assertTrue(total(all) < 1e-3, "amount " + total(all));
+        List<TerrainEcho.Reflection> wall = TerrainEcho.trace(cliff(400), 0, 66, 0, -3000, 64, 0, SOUND);
+        assertTrue(total(wall) > 100 * Math.max(total(all), 1e-9), "a cliff is louder than level ground");
+    }
+
+    @Test
+    void fartherCliffIsWeakerAndLater() {
+        double near = total(east(cliff(400), -3000, 65)), far = total(east(cliff(1600), -3000, 65));
+        assertTrue(near > 0 && far > 0);
+        assertTrue(far < near, "the distant cliff is quieter: " + far + " against " + near);
+        double nearDelay = east(cliff(400), -3000, 65).get(0).delay(), farDelay = east(cliff(1600), -3000, 65).get(0).delay();
+        assertTrue(farDelay > nearDelay + 100, "and later: " + farDelay + " against " + nearDelay);
+    }
+
+    @Test
+    void cliffHiddenFromTheBurstIsWeaker() {
+        // the ridge between the explosion and the cliff: the slope receives a front detour
+        Sightline.Heights open = cliff(400);
+        Sightline.Heights ridge = (x, z) -> x > -1700 && x < -1300 ? 400 : open.at(x, z);
+        double lit = total(east(open, -3000, 65)), shadowed = total(east(ridge, -3000, 65));
+        assertTrue(shadowed > 0 && shadowed < 0.5 * lit, "in the shade " + shadowed + " against " + lit);
+    }
+
+    @Test
+    void slopeFacingAwayDoesNotEcho() {
+        // descent to the east (slope from the explosion and from the ear down) does not return the blow
+        Sightline.Heights down = (x, z) -> x < 400 ? 164 : x < 600 ? 164 - (x - 400) / 2.0 : 64;
+        List<TerrainEcho.Reflection> out = new ArrayList<>();
+        TerrainEcho.ray(down, 0, TerrainEcho.RAYS, TerrainEcho.RANGE, 0, 166, 0, -3000, 165, 0, SOUND, out);
+        assertTrue(total(out) < 1e-4, "amount " + total(out));
+    }
+
+    @Test
+    void stepGrowsWithDistanceWithinBounds() {
+        assertEquals(TerrainEcho.STEP_MIN, TerrainEcho.step(30), 1e-9);
+        assertEquals(TerrainEcho.STEP_MAX, TerrainEcho.step(4000), 1e-9);
+        assertTrue(TerrainEcho.step(1000) > TerrainEcho.step(500));
+    }
+
+    @Test
+    void unknownTerrainGivesNoEcho() {
+        assertTrue(TerrainEcho.trace((x, z) -> Double.NaN, 0, 66, 0, -3000, 65, 0, SOUND).isEmpty());
+    }
+
+    /**
+     * An ordinary explosion nearby (Shahed at 100 m in the west, pressure - Kinney-Graham, front - at the speed of sound): the echo from the cliff at
+     * 400–600 m in the east comes through an extra path / speed of sound - seconds after the impact, quieter than the direct one.
+     */
+    @Test
+    void conventionalBlastEchoArrivesByThePathAtTheSpeedOfSound() {
+        TerrainEcho.Blast shahed = new TerrainEcho.Blast() {
+            @Override
+            public double arrivalTicks(double blocks) {
+                return blocks / Acoustics.SPEED;
+            }
+
+            @Override
+            public double pressure(double blocks) {
+                return BlastModel.surfaceOverpressureKpa(blocks, 50);
+            }
+        };
+        List<TerrainEcho.Reflection> all = TerrainEcho.trace(cliff(400), 0, 66, 0, -100, 65, 0, shahed);
+        TerrainEcho.Reflection top = all.stream().max(Comparator.comparingDouble(TerrainEcho.Reflection::energy)).orElseThrow();
+        assertTrue(top.x() >= 400 && top.x() <= 600, "from the slope: " + top.x());
+        double r1 = Math.sqrt(Math.pow(top.x() + 100, 2) + Math.pow(top.y() - 65, 2) + top.z() * top.z());
+        double r2 = Math.sqrt(top.x() * top.x() + Math.pow(top.y() - 66, 2) + top.z() * top.z());
+        double re = Math.sqrt(100 * 100 + 1);
+        assertEquals((r1 + r2 - re) / Acoustics.SPEED, top.delay(), 1e-6, "delay - an extra path at the speed of sound");
+        assertTrue(top.delay() / 20 > 2 && top.delay() / 20 < 4, "in seconds: " + top.delay() / 20);
+        assertTrue(top.energy() < 1, "quieter than direct");
+    }
+}

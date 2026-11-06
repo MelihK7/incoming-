@@ -1,0 +1,83 @@
+package ua.zentix.incoming.nuclear.model;
+
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+class FalloutModelTest {
+    /** 15 kt ground, wind 24 km/h east (+x). */
+    private static final FalloutModel GROUND = new FalloutModel(15, 0, 0, FalloutModel.REFERENCE_WIND);
+
+    /** Axial contours H+1 against reference NUKEMAP, tolerance 25%. */
+    @ParameterizedTest
+    @CsvSource({"1000, 4000", "100, 13000", "10, 40000"})
+    void contoursDownwind(double rate, double rangeM) {
+        assertEquals(rangeM, contour(GROUND, rate, 0), rangeM * 0.25);
+    }
+
+    @Test
+    void upwindShorterThanDownwind() {
+        for (double rate : new double[]{1000, 100, 10}) {
+            assertTrue(contour(GROUND, rate, Math.PI) < contour(GROUND, rate, 0) / 3, "outline " + rate);
+        }
+        // across the trail is also narrower than along
+        assertTrue(contour(GROUND, 100, Math.PI / 2) < contour(GROUND, 100, 0) / 3);
+    }
+
+    @Test
+    void windDirectionRotatesTrail() {
+        FalloutModel north = new FalloutModel(15, 0, Math.PI / 2, FalloutModel.REFERENCE_WIND);
+        assertEquals(GROUND.doseRateAtH1(8000, 300), north.doseRateAtH1(-300, 8000), 1e-6);
+    }
+
+    @Test
+    void decaySevenTen() {
+        double h1 = GROUND.doseRate(5000, 0, 1);
+        assertEquals(GROUND.doseRateAtH1(5000, 0), h1, 1e-9);
+        assertEquals(0.1, GROUND.doseRate(5000, 0, 7) / h1, 0.01);
+        assertEquals(0.01, GROUND.doseRate(5000, 0, 49) / h1, 0.001);
+    }
+
+    @Test
+    void zeroBeforeArrival() {
+        double arrival = GROUND.arrivalHours(10000, 0);
+        assertEquals(10000 / FalloutModel.REFERENCE_WIND / 3600, arrival, 1e-9);
+        assertEquals(0, GROUND.doseRate(10000, 0, arrival - 1e-3), 0);
+        assertTrue(GROUND.doseRate(10000, 0, arrival + 1e-3) > 0);
+    }
+
+    /**
+     * Under the cloud, against the wind and from the side, precipitation is not before large particles reach: 4·Y^0.2 min (Miller model),
+     * 1 Mt - 16 min, as in “Attack Environment Manual" (1973).
+     */
+    @Test
+    void nothingFallsBeforeLargestParticles() {
+        assertEquals(6.9 / 60, GROUND.firstArrivalHours(), 0.1 / 60);
+        assertEquals(16.0 / 60, new FalloutModel(1000, 0, 0, FalloutModel.REFERENCE_WIND).firstArrivalHours(), 0.2 / 60);
+        double first = GROUND.firstArrivalHours();
+        for (double[] p : new double[][]{{0, 0}, {-1000, 0}, {0, 1000}, {500, 0}}) {
+            assertEquals(first, GROUND.arrivalHours(p[0], p[1]), 1e-9);
+            assertEquals(0, GROUND.doseRate(p[0], p[1], first - 1e-3), 0);
+            assertTrue(GROUND.doseRate(p[0], p[1], first + 1e-3) > 0);
+        }
+    }
+
+    @Test
+    void airBurstHasNoFallout() {
+        FalloutModel air = new FalloutModel(15, Yield.optimalBurstHeight(15), 0, FalloutModel.REFERENCE_WIND);
+        assertEquals(0, air.surfaceFraction(), 0);
+        assertEquals(0, air.doseRateAtH1(2000, 0), 0);
+        assertEquals(1, GROUND.surfaceFraction(), 0);
+        double low = new FalloutModel(15, 100, 0, FalloutModel.REFERENCE_WIND).surfaceFraction();
+        assertTrue(low > 0 && low < 1);
+    }
+
+    /** The distance from the epicenter is in the direction of angle, where the power at H+1 drops to rate. */
+    private static double contour(FalloutModel m, double rate, double angle) {
+        double c = Math.cos(angle), s = Math.sin(angle);
+        return Solve.decreasingRoot(r -> m.doseRateAtH1(r * c, r * s), rate, 1, 1e6);
+    }
+}

@@ -1,0 +1,14 @@
+{
+  "values": [
+    "incoming:unlit_copper_bulb",
+    "incoming:unlit_exposed_copper_bulb",
+    "incoming:unlit_weathered_copper_bulb",
+    "incoming:unlit_oxidized_copper_bulb",
+    "incoming:unlit_waxed_copper_bulb",
+    "incoming:unlit_waxed_exposed_copper_bulb",
+    "incoming:unlit_waxed_weathered_copper_bulb",
+    "incoming:unlit_waxed_oxidized_copper_bulb",
+    "incoming:sam",
+    "incoming:fixed_launcher"
+  ]
+}

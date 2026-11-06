@@ -1,0 +1,323 @@
+package ua.zentix.incoming.guidance;
+
+import net.minecraft.world.phys.Vec3;
+import ua.zentix.incoming.strike.Article;
+import ua.zentix.incoming.util.Air;
+import ua.zentix.incoming.util.StandardAtmosphere;
+
+/**
+ * Unpowered flight by ticks: gravity, quadratic drag relative to air at standard-atmosphere altitude density, and
+ * world wind ({@code WeaponSpec.Ballistic}: Grad after burnout, falling bomb), with {@link #SUBSTEPS} steps per
+ * tick ({@link #fly}). The drag-free tick parabola {@code p(n) = start + n·v0 − g·n(n−1)/2} ({@link #at}) remains
+ * for launch-sector checks. Fire solution ({@link #aim}) finds launch rail exit speed and heading that reach the
+ * point in the wind known to it.
+ */
+public final class Ballistics {
+    /** Gravitational acceleration, blocks/tick²: 9.8 m/s² at 20 ticks per second. */
+    public static final double GRAVITY = 9.8 / 400;
+    /** Integration steps per tick: drag varies little within a tick; 4 steps give margin. */
+    static final int SUBSTEPS = 4;
+    /** Sea-level density, kg/m³. */
+    private static final double RHO0 = StandardAtmosphere.density(0);
+
+    private Ballistics() {}
+
+    /**
+     * Unpowered-flight drag: acceleration = coefficient · ρ/ρ₀ · f(M)<sup>mach</sup> · |v|·v (v relative to air,
+     * blocks/tick); ρ is standard-atmosphere density at altitude; f(M) is {@link Article#machFactor} using sound
+     * speed at altitude. Game drag ({@code WeaponSpec.Ballistic#drag}) has no curve ({@code mach} 0); real
+     * article drag is ρ₀·CdA/2m with the full curve; flight scale blends both values ({@code
+     * WeaponSpec.Airframe#drag}).
+     *
+     * @param coefficient sea-level coefficient, 1/block
+     * @param mach f(M) curve exponent: 0 means none, 1 means full curve
+     */
+    public record Drag(double coefficient, double mach) {
+        /** Game drag: no f(M) curve. */
+        public static Drag of(double coefficient) {
+            return new Drag(coefficient, 0);
+        }
+
+        /** Coefficient at world altitude {@code y} and air-relative {@code speed} blocks/tick, 1/block. */
+        public double at(double y, double speed) {
+            double h = y - Air.SEA;
+            return coefficient * StandardAtmosphere.density(h) / RHO0 * machTerm(h, speed);
+        }
+
+        /** f(M)<sup>mach</sup>; exactly 1 without the curve (game trajectory stays bit-identical). */
+        private double machTerm(double h, double speed) {
+            if (mach == 0) return 1;
+            double f = Article.machFactor(speed * 20 / StandardAtmosphere.soundSpeed(h));
+            return f == 1 || mach == 1 ? f : Math.pow(f, mach);
+        }
+    }
+
+    /** Wind at world altitude: blocks/tick in x and z. */
+    public interface Wind {
+        double x(double y);
+
+        double z(double y);
+
+        Wind CALM = uniform(0, 0);
+
+        /** Same at every altitude. */
+        static Wind uniform(double x, double z) {
+            return new Wind() {
+                @Override
+                public double x(double y) {
+                    return x;
+                }
+
+                @Override
+                public double z(double y) {
+                    return z;
+                }
+            };
+        }
+
+        /** World wind with altitude profile ({@link Air#speed}). */
+        static Wind of(Air air) {
+            return new Wind() {
+                @Override
+                public double x(double y) {
+                    return air.windX(y) / 20;
+                }
+
+                @Override
+                public double z(double y) {
+                    return air.windZ(y) / 20;
+                }
+            };
+        }
+
+        /** World ground wind (10 m above sea) at every altitude: what an unsounded fire solution knows. */
+        static Wind ground(Air air) {
+            double y = Air.SEA + 10;
+            return uniform(air.windX(y) / 20, air.windZ(y) / 20);
+        }
+    }
+
+    /** Path by ticks: positions at ticks 0..n−1 and final velocity. */
+    public static final class Path {
+        private final double[] xs, ys, zs;
+        private final int n;
+        private final Vec3 last;
+
+        Path(double[] xs, double[] ys, double[] zs, int n, Vec3 last) {
+            this.xs = xs;
+            this.ys = ys;
+            this.zs = zs;
+            this.n = n;
+            this.last = last;
+        }
+
+        /** Ticks calculated. */
+        public int ticks() {
+            return n - 1;
+        }
+
+        /** Position at tick {@code k} (linear between ticks; beyond calculated path, use last velocity). */
+        public Vec3 at(double k) {
+            if (k <= 0) return new Vec3(xs[0], ys[0], zs[0]);
+            if (k >= n - 1) {
+                double d = k - (n - 1);
+                return new Vec3(xs[n - 1] + last.x * d, ys[n - 1] + last.y * d, zs[n - 1] + last.z * d);
+            }
+            int i = (int) k;
+            double f = k - i;
+            return new Vec3(xs[i] + (xs[i + 1] - xs[i]) * f, ys[i] + (ys[i + 1] - ys[i]) * f, zs[i] + (zs[i + 1] - zs[i]) * f);
+        }
+
+        /** Fractional tick when descending path crosses height {@code y}; {@code NaN} if never. */
+        public double landing(double y) {
+            for (int i = 1; i < n; i++) {
+                if (ys[i] <= y && ys[i - 1] > y && ys[i] < ys[i - 1]) return i - 1 + (ys[i - 1] - y) / (ys[i - 1] - ys[i]);
+            }
+            return Double.NaN;
+        }
+
+        /**
+         * Fractional tick when horizontal path reaches the range of {@code to} from {@code from} (projection
+         * toward it); {@code NaN} if never.
+         */
+        public double reaching(Vec3 from, Vec3 to) {
+            double ux = to.x - from.x, uz = to.z - from.z, d = Math.sqrt(ux * ux + uz * uz);
+            if (d < 1e-9) return 0;
+            ux /= d;
+            uz /= d;
+            double prev = (xs[0] - from.x) * ux + (zs[0] - from.z) * uz;
+            for (int i = 1; i < n; i++) {
+                double r = (xs[i] - from.x) * ux + (zs[i] - from.z) * uz;
+                if (r >= d && prev < d) return i - 1 + (d - prev) / (r - prev);
+                prev = r;
+            }
+            return Double.NaN;
+        }
+
+        /**
+         * Fractional tick when the projectile arrives at {@code to}: on descent at its height, if no farther from
+         * it there than at its range ({@link #reaching}); otherwise at its range (a hill or tower point above the
+         * descending path is passed on ascent). {@code NaN} if neither.
+         */
+        public double arrival(Vec3 from, Vec3 to) {
+            double down = landing(to.y), across = reaching(from, to);
+            if (Double.isNaN(down)) return across;
+            if (Double.isNaN(across)) return down;
+            return at(down).distanceTo(to) <= at(across).distanceTo(to) + 2 ? down : across;
+        }
+    }
+
+    /**
+     * Flight from {@code start} with {@code v0} (blocks/tick), {@code drag} ({@link Drag}), and {@code wind},
+     * until {@code maxTicks} or below {@code floor}.
+     */
+    public static Path fly(Vec3 start, Vec3 v0, Drag drag, Wind wind, double floor, int maxTicks) {
+        int cap = Math.max(2, maxTicks + 1);
+        double[] xs = new double[cap], ys = new double[cap], zs = new double[cap];
+        double[] s = {start.x, start.y, start.z, v0.x, v0.y, v0.z};
+        xs[0] = s[0];
+        ys[0] = s[1];
+        zs[0] = s[2];
+        int n = 1;
+        // Below floor only on descent: starting below it (target above launcher) does not truncate the path.
+        while (n < cap && (s[1] >= floor || s[4] > 0)) {
+            step(s, drag, wind);
+            xs[n] = s[0];
+            ys[n] = s[1];
+            zs[n] = s[2];
+            n++;
+        }
+        return new Path(xs, ys, zs, n, new Vec3(s[3], s[4], s[5]));
+    }
+
+    /**
+     * One tick: {@code s} = {x, y, z, vx, vy, vz}. Each substep uses acceleration at its start and half of it for
+     * position (p += v·dt + a·dt²/2): without drag this is the exact parabola p = start + v0·t − g·t²/2.
+     */
+    static void step(double[] s, Drag drag, Wind wind) {
+        double dt = 1.0 / SUBSTEPS;
+        for (int i = 0; i < SUBSTEPS; i++) {
+            double rx = s[3] - wind.x(s[1]), ry = s[4], rz = s[5] - wind.z(s[1]);
+            double v = Math.sqrt(rx * rx + ry * ry + rz * rz);
+            double k = drag.at(s[1], v) * v;
+            double ax = -k * rx, ay = -k * ry - GRAVITY, az = -k * rz;
+            s[0] += (s[3] + ax * dt / 2) * dt;
+            s[1] += (s[4] + ay * dt / 2) * dt;
+            s[2] += (s[5] + az * dt / 2) * dt;
+            s[3] += ax * dt;
+            s[4] += ay * dt;
+            s[5] += az * dt;
+        }
+    }
+
+    /**
+     * Fire solution: launch rail exit velocity at {@code elevation} (°) that takes a projectile from {@code from}
+     * through {@code to} in {@code wind}: at its range, same height and no lateral offset. Newton solves speed
+     * and heading from these two misses (finite-difference derivatives; height at range grows with speed),
+     * starting from a drag-free parabola. If unconverged (point above reach), return the best solution found.
+     */
+    public static Vec3 aim(Vec3 from, Vec3 to, float elevation, Drag drag, Wind wind) {
+        double dx = to.x - from.x, dz = to.z - from.z;
+        double d = Math.max(1, Math.sqrt(dx * dx + dz * dz));
+        double el = Math.toRadians(elevation), az = Math.atan2(dz, dx);
+        double denom = 2 * Math.cos(el) * Math.cos(el) * (d * Math.tan(el) - (to.y - from.y));
+        double speed = denom > 0 ? Math.sqrt(GRAVITY * d * d / denom) : Math.sqrt(GRAVITY * d);
+        int maxTicks = (int) Math.min(6000, 3 * d / Math.max(0.1, speed * Math.cos(el)) + 400);
+        double[] miss = miss(from, to, speed, el, az, drag, wind, maxTicks);
+        double bestSpeed = speed, bestAz = az, best = Math.hypot(miss[0], miss[1]);
+        for (int it = 0; it < 40 && best > 0.02; it++) {
+            double ds = speed * 1e-3, da = 1e-4;
+            double[] ms = miss(from, to, speed + ds, el, az, drag, wind, maxTicks), ma = miss(from, to, speed, el, az + da, drag, wind, maxTicks);
+            double a = (ms[0] - miss[0]) / ds, b = (ma[0] - miss[0]) / da, c = (ms[1] - miss[1]) / ds, e = (ma[1] - miss[1]) / da;
+            double det = a * e - b * c;
+            if (Math.abs(det) < 1e-12) break;
+            double stepS = -(e * miss[0] - b * miss[1]) / det, stepA = -(-c * miss[0] + a * miss[1]) / det;
+            // At most half the speed and 0.2 rad per step: derivatives are unreliable far from the solution.
+            stepS = Math.max(-0.5 * speed, Math.min(0.5 * speed, stepS));
+            stepA = Math.max(-0.2, Math.min(0.2, stepA));
+            // At most 10 times initial speed: do not accelerate forever for a point with no solution.
+            speed = Math.max(0.05, Math.min(10 * Math.sqrt(GRAVITY * d), speed + stepS));
+            az += stepA;
+            miss = miss(from, to, speed, el, az, drag, wind, maxTicks);
+            double m = Math.hypot(miss[0], miss[1]);
+            if (m < best) {
+                best = m;
+                bestSpeed = speed;
+                bestAz = az;
+            }
+        }
+        return velocity(bestSpeed, el, bestAz);
+    }
+
+    /**
+     * A projectile from {@code from} with {@code v0} arrives within {@code tolerance} of {@code to} ({@link
+     * Path#arrival}).
+     */
+    public static boolean hits(Vec3 from, Vec3 v0, Vec3 to, Drag drag, Wind wind, double tolerance) {
+        double d = Math.sqrt(to.subtract(from).horizontalDistanceSqr());
+        int maxTicks = (int) Math.min(6000, 3 * d / Math.max(0.05, v0.horizontalDistance()) + 400);
+        Path p = fly(from, v0, drag, wind, Math.min(to.y, from.y) - 64, maxTicks);
+        double k = p.arrival(from, to);
+        return !Double.isNaN(k) && p.at(k).distanceTo(to) <= tolerance;
+    }
+
+    private static Vec3 velocity(double speed, double el, double az) {
+        double h = speed * Math.cos(el);
+        return new Vec3(h * Math.cos(az), speed * Math.sin(el), h * Math.sin(az));
+    }
+
+    /**
+     * Miss at point range: {path height there − point height, lateral offset (left positive)}. If it falls short,
+     * use lowest path height minus range shortfall (grows with speed, like height at range).
+     */
+    private static double[] miss(Vec3 from, Vec3 to, double speed, double el, double az, Drag drag, Wind wind, int maxTicks) {
+        double dx = to.x - from.x, dz = to.z - from.z, d = Math.max(1e-9, Math.sqrt(dx * dx + dz * dz));
+        double ux = dx / d, uz = dz / d;
+        Path p = fly(from, velocity(speed, el, az), drag, wind, Math.min(to.y, from.y) - d, maxTicks);
+        double k = p.reaching(from, to);
+        Vec3 at = p.at(Double.isNaN(k) ? p.ticks() : k);
+        double along = (at.x - from.x) * ux + (at.z - from.z) * uz, side = -(at.x - from.x) * uz + (at.z - from.z) * ux;
+        double high = at.y - to.y - (Double.isNaN(k) ? d - along : 0);
+        return new double[]{high, side};
+    }
+
+    /**
+     * Drag-free parabolic flight time at {@code elevation}: N(N−1) = 2(d·tgθ − dy)/g. If the target is so close
+     * or high that this gives less than {@code minTicks}, steepen the angle (5° steps, up to 80°), as a mortar
+     * trajectory ({@link #elevationFor}).
+     */
+    public static int ticksFor(Vec3 from, Vec3 to, float elevation, int minTicks) {
+        double dx = to.x - from.x, dz = to.z - from.z;
+        double d = Math.sqrt(dx * dx + dz * dz), dy = to.y - from.y;
+        for (float theta = elevation; theta <= 80; theta += 5) {
+            int ticks = vacuumTicks(d, dy, theta);
+            if (ticks >= minTicks) return ticks;
+        }
+        return minTicks;
+    }
+
+    /** Elevation giving at least {@code minTicks} via {@link #ticksFor}: rack angle or steeper, up to 80°. */
+    public static float elevationFor(Vec3 from, Vec3 to, float elevation, int minTicks) {
+        double dx = to.x - from.x, dz = to.z - from.z;
+        double d = Math.sqrt(dx * dx + dz * dz), dy = to.y - from.y;
+        for (float theta = elevation; theta <= 80; theta += 5) {
+            if (vacuumTicks(d, dy, theta) >= minTicks) return theta;
+        }
+        return 80;
+    }
+
+    private static int vacuumTicks(double d, double dy, float theta) {
+        double rhs = 2 * (d * Math.tan(Math.toRadians(theta)) - dy) / GRAVITY;
+        return rhs <= 0 ? 0 : (int) Math.ceil((1 + Math.sqrt(1 + 4 * rhs)) / 2);
+    }
+
+    /** Initial velocity for a drag-free projectile from {@code from} to reach {@code to} in exactly {@code ticks}. */
+    public static Vec3 launchVelocity(Vec3 from, Vec3 to, int ticks) {
+        return to.subtract(from).scale(1.0 / ticks).add(0, GRAVITY * (ticks - 1) / 2, 0);
+    }
+
+    /** Drag-free parabola point at tick {@code k}. */
+    public static Vec3 at(Vec3 start, Vec3 v0, double k) {
+        return start.add(v0.scale(k)).add(0, -GRAVITY * k * (k - 1) / 2, 0);
+    }
+}

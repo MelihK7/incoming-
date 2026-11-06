@@ -1,0 +1,65 @@
+modLoader = "javafml"
+loaderVersion = "${loader_version_range}"
+license = "${mod_license}"
+issueTrackerURL = "${mod_url}/issues"
+
+[[mods]]
+modId = "${mod_id}"
+version = "${mod_version}"
+displayName = "${mod_name}"
+authors = "${mod_authors}"
+displayURL = "${mod_url}"
+logoFile = "incoming.png"
+credits = "Sound authors, sources and licenses: assets/incoming/sounds/credits.txt. Bundled: FastNoiseLite and sable-companion (MIT; license notices included). Minecraft-derived assets: META-INF/ASSET-NOTICES.txt."
+description = '''${mod_description}'''
+
+# Opens Channel.source, SoundManager.soundEngine and SoundEngine.instanceToChannel (OpenAL filtering: air,
+# obstacles, deafness), and ChunkMap.getChunks (all loaded chunks).
+[[accessTransformers]]
+file = "META-INF/accesstransformer.cfg"
+
+# Mixin configuration, including the Sable craft-splitting crash guard; that guard is inactive without Sable.
+[[mixins]]
+config = "incoming.mixins.json"
+
+[[dependencies.${mod_id}]]
+modId = "neoforge"
+type = "required"
+versionRange = "[${neo_version},)"
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies.${mod_id}]]
+modId = "minecraft"
+type = "required"
+versionRange = "${minecraft_version_range}"
+ordering = "NONE"
+side = "BOTH"
+
+# Sable and Create Aeronautics are optional: without them, there are no craft.
+[[dependencies.${mod_id}]]
+modId = "sable"
+type = "optional"
+versionRange = "[${sable_version},)"
+ordering = "AFTER"
+side = "BOTH"
+
+# Distant Horizons is optional: the targeting map reads far terrain through its API (built against API 7;
+# another API major version limits terrain to chunks, see client/map/DistantHorizonsTerrain).
+[[dependencies.${mod_id}]]
+modId = "distanthorizons"
+type = "optional"
+reason = "Map strike: far terrain from Distant Horizons"
+versionRange = "${dh_version_range}"
+ordering = "NONE"
+side = "CLIENT"
+
+# LOD Server Support is optional: its client API supplies far terrain for the map, rays and sound.
+# Any version: an incompatible API disables the LSS layer with one log message (client/map/LssTerrain).
+[[dependencies.${mod_id}]]
+modId = "lss"
+type = "optional"
+reason = "Map strike, sight lines and sound: far terrain from LOD Server Support"
+versionRange = "[0,)"
+ordering = "NONE"
+side = "CLIENT"

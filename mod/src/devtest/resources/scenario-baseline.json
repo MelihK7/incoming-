@@ -1,0 +1,972 @@
+{
+  "scenarios": {
+    "bomber.point.hill.0": {
+      "end": "entry",
+      "tick": 521,
+      "x": 0.0,
+      "y": 0.5,
+      "z": 0.0,
+      "hash": "42bef85f80bb5a3b"
+    },
+    "bomber.point.none.0": {
+      "end": "entry",
+      "tick": 276,
+      "x": 0.0,
+      "y": 0.5,
+      "z": 0.0,
+      "hash": "b17feb53d39ccd94"
+    },
+    "bomber.point.quarry.0": {
+      "end": "entry",
+      "tick": 359,
+      "x": 0.0,
+      "y": 0.5,
+      "z": 0.0,
+      "hash": "93a5fe71e94f5772"
+    },
+    "bomber.point.retarget.0": {
+      "end": "entry",
+      "tick": 331,
+      "x": -95.0,
+      "y": 0.5,
+      "z": -145.5,
+      "hash": "d7f9683726f59b82"
+    },
+    "drone_far.mob.hill.0": {
+      "end": "blast",
+      "tick": 622,
+      "x": 10.93,
+      "y": 0.45,
+      "z": 12.71,
+      "hash": "219813951821b7b0"
+    },
+    "drone_far.mob.none.0": {
+      "end": "blast",
+      "tick": 363,
+      "x": -3.12,
+      "y": 0.45,
+      "z": -13.83,
+      "hash": "ce1af8a39274c766"
+    },
+    "drone_far.mob.quarry.0": {
+      "end": "blast",
+      "tick": 530,
+      "x": 2.17,
+      "y": 0.45,
+      "z": -3.03,
+      "hash": "fb777ad33baaf1fe"
+    },
+    "drone_far.mob.retarget.0": {
+      "end": "blast",
+      "tick": 684,
+      "x": 52.9,
+      "y": 0.0,
+      "z": 218.09,
+      "hash": "8e679d01f1ea9472"
+    },
+    "drone_far.mob.target_gone.0": {
+      "end": "blast",
+      "tick": 345,
+      "x": -8.95,
+      "y": 0.45,
+      "z": -5.3,
+      "hash": "e96063eba2fc4098"
+    },
+    "drone_far.mob.teleport_far.0": {
+      "end": "blast",
+      "tick": 831,
+      "x": 0.48,
+      "y": 0.45,
+      "z": -1.42,
+      "hash": "8c035e957806e484"
+    },
+    "drone_far.mob.teleport_near.0": {
+      "end": "blast",
+      "tick": 737,
+      "x": 142.59,
+      "y": 0.45,
+      "z": -284.45,
+      "hash": "8b07c08bec52df16"
+    },
+    "drone_far.player.none.0": {
+      "end": "blast",
+      "tick": 787,
+      "x": 20.17,
+      "y": 26.65,
+      "z": 35.1,
+      "hash": "cf8eb6cb057a4b13"
+    },
+    "drone_far.player.retarget.0": {
+      "end": "blast",
+      "tick": 713,
+      "x": -306.16,
+      "y": 0.0,
+      "z": -200.43,
+      "hash": "79f0eac13b604708"
+    },
+    "drone_far.player.target_gone.0": {
+      "end": "blast",
+      "tick": 876,
+      "x": 35.08,
+      "y": 32.12,
+      "z": 19.94,
+      "hash": "6e7e8ec6cda3a03d"
+    },
+    "drone_far.player.teleport_far.0": {
+      "end": "blast",
+      "tick": 497,
+      "x": -41.29,
+      "y": 33.18,
+      "z": 2.95,
+      "hash": "e0c5403414667b44"
+    },
+    "drone_far.player.teleport_near.0": {
+      "end": "blast",
+      "tick": 361,
+      "x": 89.41,
+      "y": 9.78,
+      "z": -246.9,
+      "hash": "e991960a4d1b4e81"
+    },
+    "drone_far.point.beside.0": {
+      "end": "blast",
+      "tick": 693,
+      "x": -121.72,
+      "y": 0.0,
+      "z": 36.72,
+      "hash": "78778d616c6db589"
+    },
+    "drone_far.point.hill.0": {
+      "end": "blast",
+      "tick": 833,
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.0,
+      "hash": "add4131cb6edc418"
+    },
+    "drone_far.point.none.0": {
+      "end": "blast",
+      "tick": 296,
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.0,
+      "hash": "b16cc82b382428fe"
+    },
+    "drone_far.point.quarry.0": {
+      "end": "blast",
+      "tick": 883,
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.0,
+      "hash": "1ca179ced9f0fc04"
+    },
+    "drone_far.point.retarget.0": {
+      "end": "blast",
+      "tick": 908,
+      "x": 69.94,
+      "y": 0.0,
+      "z": -228.37,
+      "hash": "da055b06d4cfd26a"
+    },
+    "drone_far.point.waypoints.0": {
+      "end": "blast",
+      "tick": 526,
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.0,
+      "hash": "3a45d3c8acc57d41"
+    },
+    "drone_rail.mob.hill.0": {
+      "end": "blast",
+      "tick": 876,
+      "x": -2.53,
+      "y": 0.45,
+      "z": 2.69,
+      "hash": "4c360fd00c8598d2"
+    },
+    "drone_rail.mob.none.0": {
+      "end": "blast",
+      "tick": 961,
+      "x": 4.81,
+      "y": 0.45,
+      "z": 1.96,
+      "hash": "8381033e6ef3df0c"
+    },
+    "drone_rail.mob.quarry.0": {
+      "end": "blast",
+      "tick": 391,
+      "x": -4.4,
+      "y": 0.45,
+      "z": -9.12,
+      "hash": "e14d3abc689e993f"
+    },
+    "drone_rail.mob.retarget.0": {
+      "end": "blast",
+      "tick": 427,
+      "x": 223.91,
+      "y": 0.0,
+      "z": 258.15,
+      "hash": "99a3d378a367e690"
+    },
+    "drone_rail.mob.target_gone.0": {
+      "end": "blast",
+      "tick": 902,
+      "x": -4.13,
+      "y": 0.45,
+      "z": -8.19,
+      "hash": "72a7e2b2781b5f26"
+    },
+    "drone_rail.mob.teleport_far.0": {
+      "end": "blast",
+      "tick": 873,
+      "x": 0.76,
+      "y": 0.45,
+      "z": 6.29,
+      "hash": "1f2a0a689474ea8c"
+    },
+    "drone_rail.mob.teleport_near.0": {
+      "end": "blast",
+      "tick": 1137,
+      "x": 232.94,
+      "y": 0.45,
+      "z": -190.07,
+      "hash": "690013c0ef8222e2"
+    },
+    "drone_rail.player.none.0": {
+      "end": "blast",
+      "tick": 933,
+      "x": -33.2,
+      "y": 23.21,
+      "z": 10.73,
+      "hash": "74f2cb6190643606"
+    },
+    "drone_rail.player.retarget.0": {
+      "end": "blast",
+      "tick": 951,
+      "x": -285.16,
+      "y": 0.0,
+      "z": 194.22,
+      "hash": "cd7eaad6ac1117ff"
+    },
+    "drone_rail.player.target_gone.0": {
+      "end": "blast",
+      "tick": 592,
+      "x": 12.42,
+      "y": 29.5,
+      "z": -43.89,
+      "hash": "e01102ef0a1cb92c"
+    },
+    "drone_rail.player.teleport_far.0": {
+      "end": "blast",
+      "tick": 982,
+      "x": -10.25,
+      "y": 9.33,
+      "z": 38.25,
+      "hash": "2091f3ad70480241"
+    },
+    "drone_rail.player.teleport_near.0": {
+      "end": "blast",
+      "tick": 1031,
+      "x": -239.72,
+      "y": 0.0,
+      "z": 235.04,
+      "hash": "237834ee4463f5d9"
+    },
+    "drone_rail.point.beside.0": {
+      "end": "blast",
+      "tick": 683,
+      "x": 64.44,
+      "y": 0.0,
+      "z": 109.62,
+      "hash": "d8d412104338bcd5"
+    },
+    "drone_rail.point.hill.0": {
+      "end": "blast",
+      "tick": 689,
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.0,
+      "hash": "2338cdf1b597cef7"
+    },
+    "drone_rail.point.none.0": {
+      "end": "blast",
+      "tick": 726,
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.0,
+      "hash": "6b5e7414ed18b230"
+    },
+    "drone_rail.point.quarry.0": {
+      "end": "blast",
+      "tick": 512,
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.0,
+      "hash": "2a19cbeec5d828a6"
+    },
+    "drone_rail.point.retarget.0": {
+      "end": "blast",
+      "tick": 453,
+      "x": -229.88,
+      "y": 0.0,
+      "z": -116.72,
+      "hash": "1246dd5ee0109225"
+    },
+    "drone_rail.point.waypoints.0": {
+      "end": "blast",
+      "tick": 332,
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.0,
+      "hash": "924004790a8c7de2"
+    },
+    "icbm.point.none.0": {
+      "end": "gone",
+      "tick": 186,
+      "x": 223.56,
+      "y": 697.14,
+      "z": 119.35,
+      "hash": "e4e57f69ade1bdc8"
+    },
+    "loiter_far.mob.hill.0": {
+      "end": "blast",
+      "tick": 874,
+      "x": 12.76,
+      "y": 0.45,
+      "z": -4.71,
+      "hash": "46803076307880e7"
+    },
+    "loiter_far.mob.none.0": {
+      "end": "blast",
+      "tick": 935,
+      "x": 11.85,
+      "y": 0.45,
+      "z": -15.73,
+      "hash": "63a3a2f5204c769b"
+    },
+    "loiter_far.mob.quarry.0": {
+      "end": "blast",
+      "tick": 622,
+      "x": 18.13,
+      "y": 2.45,
+      "z": 6.58,
+      "hash": "237be4140879b2de"
+    },
+    "loiter_far.mob.retarget.0": {
+      "end": "blast",
+      "tick": 1059,
+      "x": 206.26,
+      "y": 0.0,
+      "z": 122.84,
+      "hash": "f06feb09d9c02aef"
+    },
+    "loiter_far.mob.target_gone.0": {
+      "end": "blast",
+      "tick": 939,
+      "x": 11.68,
+      "y": 0.45,
+      "z": -4.57,
+      "hash": "fc6554f229a12e8e"
+    },
+    "loiter_far.mob.teleport_far.0": {
+      "end": "blast",
+      "tick": 993,
+      "x": -18.1,
+      "y": 0.45,
+      "z": 5.75,
+      "hash": "4129358af3c1e206"
+    },
+    "loiter_far.mob.teleport_near.0": {
+      "end": "blast",
+      "tick": 624,
+      "x": 272.48,
+      "y": 0.45,
+      "z": 149.3,
+      "hash": "1f9413e2e506a485"
+    },
+    "loiter_far.player.none.0": {
+      "end": "blast",
+      "tick": 880,
+      "x": 15.46,
+      "y": 26.78,
+      "z": 39.69,
+      "hash": "6ec7671a05e3ba61"
+    },
+    "loiter_far.player.retarget.0": {
+      "end": "blast",
+      "tick": 995,
+      "x": 134.25,
+      "y": 0.0,
+      "z": 184.36,
+      "hash": "977d24e6dc3742d2"
+    },
+    "loiter_far.player.target_gone.0": {
+      "end": "blast",
+      "tick": 902,
+      "x": -8.78,
+      "y": 20.54,
+      "z": 45.36,
+      "hash": "001990a4833e9ecf"
+    },
+    "loiter_far.player.teleport_far.0": {
+      "end": "blast",
+      "tick": 819,
+      "x": 26.88,
+      "y": 18.98,
+      "z": -43.33,
+      "hash": "cb68b161a83913cd"
+    },
+    "loiter_far.player.teleport_near.0": {
+      "end": "blast",
+      "tick": 1096,
+      "x": 63.4,
+      "y": 22.35,
+      "z": 268.01,
+      "hash": "93383dd305eb4152"
+    },
+    "loiter_far.point.beside.0": {
+      "end": "blast",
+      "tick": 403,
+      "x": -64.33,
+      "y": 0.0,
+      "z": 110.49,
+      "hash": "0c9977b9c9c1a12e"
+    },
+    "loiter_far.point.hill.0": {
+      "end": "blast",
+      "tick": 841,
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.0,
+      "hash": "6c973847515b495f"
+    },
+    "loiter_far.point.none.0": {
+      "end": "blast",
+      "tick": 841,
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.0,
+      "hash": "d1c9fa0a6043d80c"
+    },
+    "loiter_far.point.quarry.0": {
+      "end": "blast",
+      "tick": 826,
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.0,
+      "hash": "42b636c713208a93"
+    },
+    "loiter_far.point.retarget.0": {
+      "end": "blast",
+      "tick": 939,
+      "x": -208.76,
+      "y": 0.0,
+      "z": 2.55,
+      "hash": "49981a522d4af384"
+    },
+    "loiter_far.point.waypoints.0": {
+      "end": "blast",
+      "tick": 1291,
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.0,
+      "hash": "69fc4a9d40be4bba"
+    },
+    "loiter_rail.mob.hill.0": {
+      "end": "blast",
+      "tick": 72,
+      "x": -199.5,
+      "y": 19.75,
+      "z": 41.22,
+      "hash": "524826748d2e1d53"
+    },
+    "loiter_rail.mob.none.0": {
+      "end": "blast",
+      "tick": 817,
+      "x": 12.38,
+      "y": 0.45,
+      "z": 4.2,
+      "hash": "0e5ba3093b11ae63"
+    },
+    "loiter_rail.mob.quarry.0": {
+      "end": "blast",
+      "tick": 763,
+      "x": -0.13,
+      "y": 0.45,
+      "z": 0.26,
+      "hash": "3f0a29a8aa2202be"
+    },
+    "loiter_rail.mob.retarget.0": {
+      "end": "blast",
+      "tick": 1029,
+      "x": -311.27,
+      "y": 0.0,
+      "z": -39.64,
+      "hash": "930c0b8a65222e14"
+    },
+    "loiter_rail.mob.target_gone.0": {
+      "end": "blast",
+      "tick": 796,
+      "x": -0.37,
+      "y": 0.45,
+      "z": 3.57,
+      "hash": "eecff20b28cf2162"
+    },
+    "loiter_rail.mob.teleport_far.0": {
+      "end": "blast",
+      "tick": 826,
+      "x": -2.29,
+      "y": 0.45,
+      "z": -13.02,
+      "hash": "18bca3e071ff5b30"
+    },
+    "loiter_rail.mob.teleport_near.0": {
+      "end": "blast",
+      "tick": 858,
+      "x": 204.56,
+      "y": 0.45,
+      "z": -216.9,
+      "hash": "44b8998d98eaf1b7"
+    },
+    "loiter_rail.player.none.0": {
+      "end": "blast",
+      "tick": 881,
+      "x": 35.9,
+      "y": 40.03,
+      "z": -41.4,
+      "hash": "0387697385e33a31"
+    },
+    "loiter_rail.player.retarget.0": {
+      "end": "blast",
+      "tick": 1329,
+      "x": 205.4,
+      "y": 0.0,
+      "z": 290.29,
+      "hash": "ffa85de321c0222f"
+    },
+    "loiter_rail.player.target_gone.0": {
+      "end": "blast",
+      "tick": 928,
+      "x": 30.33,
+      "y": 10.21,
+      "z": -48.68,
+      "hash": "035f3c1866c97447"
+    },
+    "loiter_rail.player.teleport_far.0": {
+      "end": "blast",
+      "tick": 1030,
+      "x": -41.5,
+      "y": 29.05,
+      "z": 13.55,
+      "hash": "822db93c6e9da41f"
+    },
+    "loiter_rail.player.teleport_near.0": {
+      "end": "blast",
+      "tick": 654,
+      "x": 267.46,
+      "y": 36.37,
+      "z": -188.04,
+      "hash": "e2f328c583f05bef"
+    },
+    "loiter_rail.point.beside.0": {
+      "end": "blast",
+      "tick": 241,
+      "x": 21.18,
+      "y": 0.0,
+      "z": 125.86,
+      "hash": "0d4a0aecd9fac6a4"
+    },
+    "loiter_rail.point.hill.0": {
+      "end": "blast",
+      "tick": 748,
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.0,
+      "hash": "57b51a069c83b70a"
+    },
+    "loiter_rail.point.none.0": {
+      "end": "blast",
+      "tick": 668,
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.0,
+      "hash": "72274fcd0c25f330"
+    },
+    "loiter_rail.point.quarry.0": {
+      "end": "blast",
+      "tick": 869,
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.0,
+      "hash": "2d187e11776760ae"
+    },
+    "loiter_rail.point.retarget.0": {
+      "end": "blast",
+      "tick": 1092,
+      "x": -132.94,
+      "y": 0.0,
+      "z": -274.01,
+      "hash": "8181904b26d4a8a7"
+    },
+    "loiter_rail.point.waypoints.0": {
+      "end": "blast",
+      "tick": 1142,
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.0,
+      "hash": "36d9486b229c952a"
+    },
+    "missile_far.mob.hill.0": {
+      "end": "blast",
+      "tick": 186,
+      "x": 10.57,
+      "y": 0.45,
+      "z": 0.91,
+      "hash": "c0f4121c02371b19"
+    },
+    "missile_far.mob.none.0": {
+      "end": "blast",
+      "tick": 518,
+      "x": 3.28,
+      "y": 0.45,
+      "z": 1.91,
+      "hash": "8fb6c9efc9c1a2d7"
+    },
+    "missile_far.mob.quarry.0": {
+      "end": "blast",
+      "tick": 456,
+      "x": -10.52,
+      "y": 0.45,
+      "z": -7.31,
+      "hash": "c0d2b013ea1d696a"
+    },
+    "missile_far.mob.retarget.0": {
+      "end": "blast",
+      "tick": 516,
+      "x": 107.41,
+      "y": 0.0,
+      "z": -195.02,
+      "hash": "e51521d29bfcd47a"
+    },
+    "missile_far.mob.target_gone.0": {
+      "end": "blast",
+      "tick": 585,
+      "x": -1.16,
+      "y": 0.45,
+      "z": -3.9,
+      "hash": "db33c4fa2b02411c"
+    },
+    "missile_far.mob.teleport_far.0": {
+      "end": "blast",
+      "tick": 384,
+      "x": -0.53,
+      "y": 0.45,
+      "z": -0.4,
+      "hash": "6432620305e63691"
+    },
+    "missile_far.mob.teleport_near.0": {
+      "end": "blast",
+      "tick": 369,
+      "x": 6.67,
+      "y": 0.45,
+      "z": 299.67,
+      "hash": "deb22e6ed11b7d6d"
+    },
+    "missile_far.player.none.0": {
+      "end": "blast",
+      "tick": 516,
+      "x": 22.81,
+      "y": 16.13,
+      "z": -2.06,
+      "hash": "5ac8498307afa31f"
+    },
+    "missile_far.player.retarget.0": {
+      "end": "blast",
+      "tick": 193,
+      "x": 169.12,
+      "y": 0.0,
+      "z": 267.16,
+      "hash": "4d3603db11ac6480"
+    },
+    "missile_far.player.target_gone.0": {
+      "end": "blast",
+      "tick": 291,
+      "x": -48.9,
+      "y": 25.34,
+      "z": -11.09,
+      "hash": "224fa24434f62d3a"
+    },
+    "missile_far.player.teleport_far.0": {
+      "end": "blast",
+      "tick": 424,
+      "x": -29.75,
+      "y": 32.05,
+      "z": 0.74,
+      "hash": "81bb2fca088407e6"
+    },
+    "missile_far.player.teleport_near.0": {
+      "end": "blast",
+      "tick": 322,
+      "x": 219.59,
+      "y": 18.95,
+      "z": 241.08,
+      "hash": "39f9b2ae9fe45127"
+    },
+    "missile_far.point.beside.0": {
+      "end": "blast",
+      "tick": 542,
+      "x": 125.24,
+      "y": 0.0,
+      "z": -0.99,
+      "hash": "2b27ef76b28e9767"
+    },
+    "missile_far.point.hill.0": {
+      "end": "blast",
+      "tick": 592,
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.0,
+      "hash": "17101577f3989c36"
+    },
+    "missile_far.point.none.0": {
+      "end": "blast",
+      "tick": 205,
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.0,
+      "hash": "37f9b4edac07eb8d"
+    },
+    "missile_far.point.quarry.0": {
+      "end": "blast",
+      "tick": 209,
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.0,
+      "hash": "f2237e8ab76fcd14"
+    },
+    "missile_far.point.retarget.0": {
+      "end": "blast",
+      "tick": 198,
+      "x": -276.85,
+      "y": 0.0,
+      "z": -10.12,
+      "hash": "6be11a022aa25b91"
+    },
+    "missile_far.point.waypoints.0": {
+      "end": "blast",
+      "tick": 334,
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.0,
+      "hash": "259de295263db866"
+    },
+    "missile_rail.mob.hill.0": {
+      "end": "blast",
+      "tick": 452,
+      "x": 16.2,
+      "y": 0.45,
+      "z": 0.86,
+      "hash": "abe1ae2fbb950154"
+    },
+    "missile_rail.mob.none.0": {
+      "end": "blast",
+      "tick": 523,
+      "x": 2.18,
+      "y": 0.45,
+      "z": -8.2,
+      "hash": "cc81e346f719f271"
+    },
+    "missile_rail.mob.quarry.0": {
+      "end": "blast",
+      "tick": 469,
+      "x": 3.43,
+      "y": 0.45,
+      "z": -16.57,
+      "hash": "98f129e7655599ad"
+    },
+    "missile_rail.mob.retarget.0": {
+      "end": "blast",
+      "tick": 325,
+      "x": -157.17,
+      "y": 0.0,
+      "z": 257.8,
+      "hash": "22596aeee14d38cc"
+    },
+    "missile_rail.mob.target_gone.0": {
+      "end": "blast",
+      "tick": 343,
+      "x": -4.68,
+      "y": 0.45,
+      "z": -10.58,
+      "hash": "b2eeb81477ee80be"
+    },
+    "missile_rail.mob.teleport_far.0": {
+      "end": "blast",
+      "tick": 420,
+      "x": -10.42,
+      "y": 0.45,
+      "z": 2.36,
+      "hash": "fb9dd5faece9dd65"
+    },
+    "missile_rail.mob.teleport_near.0": {
+      "end": "blast",
+      "tick": 337,
+      "x": 233.42,
+      "y": 0.45,
+      "z": -172.82,
+      "hash": "cbd13ad19aba0e47"
+    },
+    "missile_rail.player.none.0": {
+      "end": "blast",
+      "tick": 647,
+      "x": 25.3,
+      "y": 31.97,
+      "z": -32.24,
+      "hash": "a95228dc8968d810"
+    },
+    "missile_rail.player.retarget.0": {
+      "end": "blast",
+      "tick": 292,
+      "x": 155.57,
+      "y": 0.0,
+      "z": 243.59,
+      "hash": "2203158b61ad1f16"
+    },
+    "missile_rail.player.target_gone.0": {
+      "end": "blast",
+      "tick": 478,
+      "x": 16.6,
+      "y": 28.62,
+      "z": -40.44,
+      "hash": "603fa4da389d65cf"
+    },
+    "missile_rail.player.teleport_far.0": {
+      "end": "blast",
+      "tick": 282,
+      "x": -11.7,
+      "y": 24.59,
+      "z": 42.14,
+      "hash": "166da5079a270058"
+    },
+    "missile_rail.player.teleport_near.0": {
+      "end": "blast",
+      "tick": 294,
+      "x": -87.11,
+      "y": 14.34,
+      "z": -260.9,
+      "hash": "ad24deb55fead8c7"
+    },
+    "missile_rail.point.beside.0": {
+      "end": "blast",
+      "tick": 443,
+      "x": 73.35,
+      "y": 0.0,
+      "z": -103.3,
+      "hash": "7b6e512e3a40f721"
+    },
+    "missile_rail.point.hill.0": {
+      "end": "blast",
+      "tick": 617,
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.0,
+      "hash": "6a600c3f245808d4"
+    },
+    "missile_rail.point.none.0": {
+      "end": "blast",
+      "tick": 592,
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.0,
+      "hash": "7c9dfb7f69c757b4"
+    },
+    "missile_rail.point.quarry.0": {
+      "end": "blast",
+      "tick": 457,
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.0,
+      "hash": "72a5089a712e4e0b"
+    },
+    "missile_rail.point.retarget.0": {
+      "end": "blast",
+      "tick": 290,
+      "x": -146.45,
+      "y": 0.0,
+      "z": 67.37,
+      "hash": "4aedef2a8a58842e"
+    },
+    "missile_rail.point.waypoints.0": {
+      "end": "blast",
+      "tick": 581,
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.0,
+      "hash": "5ddab389308843c4"
+    },
+    "rocket_far.mob.none.0": {
+      "end": "blast",
+      "tick": 270,
+      "x": -0.8,
+      "y": 0.45,
+      "z": 5.67,
+      "hash": "0b6f1194fb480ba6"
+    },
+    "rocket_far.point.hill.0": {
+      "end": "blast",
+      "tick": 222,
+      "x": -2.86,
+      "y": 0.0,
+      "z": -1.89,
+      "hash": "4da117585ad3325d"
+    },
+    "rocket_far.point.none.0": {
+      "end": "blast",
+      "tick": 245,
+      "x": 1.98,
+      "y": 0.0,
+      "z": -3.07,
+      "hash": "44c1056520d1ec9e"
+    },
+    "rocket_far.point.quarry.0": {
+      "end": "blast",
+      "tick": 226,
+      "x": -2.14,
+      "y": 0.0,
+      "z": -2.58,
+      "hash": "c0b887527fcff16e"
+    },
+    "rocket_tube.mob.none.0": {
+      "end": "blast",
+      "tick": 277,
+      "x": -4.15,
+      "y": 0.45,
+      "z": -3.0,
+      "hash": "01307b55bb2bd53b"
+    },
+    "rocket_tube.point.hill.0": {
+      "end": "blast",
+      "tick": 259,
+      "x": -4.04,
+      "y": 0.0,
+      "z": -0.79,
+      "hash": "4218a420b6042ac2"
+    },
+    "rocket_tube.point.none.0": {
+      "end": "blast",
+      "tick": 270,
+      "x": -1.98,
+      "y": 0.0,
+      "z": -9.88,
+      "hash": "17cdc59729f43fbe"
+    },
+    "rocket_tube.point.quarry.0": {
+      "end": "blast",
+      "tick": 164,
+      "x": 0.37,
+      "y": 0.0,
+      "z": -0.56,
+      "hash": "a0be0b76a252aee7"
+    }
+  }
+}

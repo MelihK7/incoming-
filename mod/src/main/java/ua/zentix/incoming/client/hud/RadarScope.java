@@ -1,0 +1,95 @@
+package ua.zentix.incoming.client.hud;
+
+import net.minecraft.ChatFormatting;
+import net.minecraft.client.DeltaTracker;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.network.chat.Component;
+import net.minecraft.util.Mth;
+import net.minecraft.world.phys.Vec3;
+import org.jetbrains.annotations.Nullable;
+import ua.zentix.incoming.IncomingConfig;
+import ua.zentix.incoming.client.cam.ProjectileCamera;
+import ua.zentix.incoming.net.S2C;
+import ua.zentix.incoming.strike.WeaponType;
+
+/**
+ * SAM radar scope at top left, for friendlies near the SAM ({@link S2C.RadarScope}, once per radar sweep): north-up
+ * radar range circle with engagement range circle, moving sweep and targets: hostiles red (orange if pursued by a
+ * missile), friendlies green; below, missiles on rails and in reserve. Packets from two SAMs show the nearer scope.
+ * No packets for {@link #STALE} ticks (moved away, SAM broken or unloaded) fades the scope out.
+ */
+public final class RadarScope {
+    /** No scope after this many ticks without a packet. */
+    static final int STALE = 40;
+    private static final int RADIUS = 34, MARGIN = 8;
+    private static final int GREEN = 0xFF46F07A, DIM = 0x6046F07A, HOSTILE = 0xFFFF4030, ENGAGED = 0xFFFFA020;
+    /** Sweep makes one turn in this many ticks. */
+    private static final float SWEEP = 40;
+
+    @Nullable
+    private static S2C.RadarScope scope;
+    private static long received, ticks;
+
+    private RadarScope() {}
+
+    /** Radar packet: a SAM farther away than the currently displayed one does not replace it. */
+    public static void received(S2C.RadarScope p) {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player == null) return;
+        Vec3 me = mc.player.position();
+        if (scope != null && ticks - received < STALE && p.radar().distanceToSqr(me) > scope.radar().distanceToSqr(me) + 1) return;
+        scope = p;
+        received = ticks;
+    }
+
+    /** Once per client tick (unpaused). */
+    public static void tick() {
+        ticks++;
+        if (scope != null && ticks - received > STALE) scope = null;
+    }
+
+    public static void reset() {
+        scope = null;
+    }
+
+    public static void render(GuiGraphics g, DeltaTracker delta) {
+        Minecraft mc = Minecraft.getInstance();
+        S2C.RadarScope s = scope;
+        if (s == null || mc.options.hideGui || mc.level == null || !IncomingConfig.CLIENT.hud.get() || ProjectileCamera.isActive()) return;
+        float pt = delta.getGameTimeDeltaPartialTick(false);
+        int cx = MARGIN + RADIUS, cy = MARGIN + RADIUS;
+        HudDraw.disc(g, cx, cy, RADIUS, 0xA0061A0E);
+        HudDraw.line(g, cx - RADIUS, cy, cx + RADIUS, cy, 1, DIM);
+        HudDraw.line(g, cx, cy - RADIUS, cx, cy + RADIUS, 1, DIM);
+        float scale = (float) RADIUS / Math.max(1, s.range());
+        HudDraw.ring(g, cx, cy, s.engageRange() * scale, 1, DIM);
+        HudDraw.ring(g, cx, cy, RADIUS, 1, GREEN);
+        float a = (ticks + pt) / SWEEP * Mth.TWO_PI;
+        HudDraw.line(g, cx, cy, cx + Mth.sin(a) * RADIUS, cy - Mth.cos(a) * RADIUS, 1, 0xB046F07A);
+        Font font = mc.font;
+        Component north = Component.translatable("incoming.hud.north");
+        g.drawString(font, north, cx - font.width(north) / 2, cy - RADIUS + 2, DIM, false);
+        int hostile = 0;
+        for (S2C.Blip b : s.blips()) {
+            float x = cx + b.dx() * scale, y = cy + b.dz() * scale;
+            if (b.is(S2C.Blip.HOSTILE)) hostile++;
+            int color = !b.is(S2C.Blip.HOSTILE) ? GREEN : b.is(S2C.Blip.ENGAGED) ? ENGAGED : HOSTILE;
+            // Tail shows approach direction (Minecraft heading: 0° toward +Z, down the screen).
+            float yaw = b.yaw() * Mth.DEG_TO_RAD;
+            HudDraw.line(g, x, y, x + Mth.sin(yaw) * 4, y - Mth.cos(yaw) * 4, 1, color & 0x80FFFFFF);
+            HudDraw.disc(g, x, y, size(b.weapon()) * (b.is(S2C.Blip.ENGAGEABLE) ? 1.35f : 1f), color);
+        }
+        Component line = Component.translatable("incoming.sam.scope", String.valueOf(s.ready()), String.valueOf(s.stock()), String.valueOf(hostile))
+                .withStyle(hostile > 0 ? ChatFormatting.RED : ChatFormatting.GREEN);
+        g.drawString(font, line, MARGIN, cy + RADIUS + 4, 0xFFFFFFFF);
+    }
+
+    /** Blip radius, px: weapon body length; Lancet and Shahed small, missile and ICBM larger, B-2 largest. */
+    static float size(int weapon) {
+        WeaponType[] all = WeaponType.values();
+        if (weapon < 0 || weapon >= all.length) return 1.6f;
+        return Mth.clamp((float) (1.1 + 0.25 * all[weapon].spec().airframe().noseLength()), 1.4f, 3.2f);
+    }
+}

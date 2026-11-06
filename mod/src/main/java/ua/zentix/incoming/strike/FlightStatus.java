@@ -1,0 +1,82 @@
+package ua.zentix.incoming.strike;
+
+import dev.ryanhcode.sable.companion.SubLevelAccess;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.player.Player;
+import net.neoforged.neoforge.event.tick.ServerTickEvent;
+import net.neoforged.neoforge.network.PacketDistributor;
+import ua.zentix.incoming.compat.SubLevels;
+import ua.zentix.incoming.entity.BomberEntity;
+import ua.zentix.incoming.entity.IcbmEntity;
+import ua.zentix.incoming.entity.StrikeProjectile;
+import ua.zentix.incoming.net.S2C;
+import ua.zentix.incoming.registry.ModAttachments;
+import ua.zentix.incoming.target.Target;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+/**
+ * Every 5 ticks, each player with airborne projectiles (across worlds, including outside loaded chunks) receives
+ * a list: phase, time to impact, position. Once all arrive, send one empty list to clear HUD. Excludes ICBM
+ * (nuclear HUD owns countdown) and B-2 departing after release.
+ */
+public final class FlightStatus {
+    private static final int PERIOD = 5;
+
+    private FlightStatus() {}
+
+    public static void onServerTick(ServerTickEvent.Post e) {
+        MinecraftServer server = e.getServer();
+        if (server.getTickCount() % PERIOD != 0) return;
+        Map<UUID, List<S2C.Flight>> byOwner = new HashMap<>();
+        Map<UUID, List<Integer>> targets = new HashMap<>();
+        for (ServerLevel level : server.getAllLevels()) {
+            for (StrikeProjectile p : StrikeWorld.projectiles(level)) collect(byOwner, targets, p);
+        }
+        for (ServerPlayer p : server.getPlayerList().getPlayers()) {
+            List<S2C.Flight> flights = byOwner.get(p.getUUID());
+            if (flights != null) {
+                PacketDistributor.sendToPlayer(p, new S2C.Flights(flights, targets.get(p.getUUID())));
+                p.setData(ModAttachments.FLIGHTS_SHOWN, true);
+            } else if (p.getData(ModAttachments.FLIGHTS_SHOWN)) {
+                PacketDistributor.sendToPlayer(p, new S2C.Flights(List.of()));
+                p.setData(ModAttachments.FLIGHTS_SHOWN, false);
+            }
+        }
+    }
+
+    private static void collect(Map<UUID, List<S2C.Flight>> byOwner, Map<UUID, List<Integer>> targets, StrikeProjectile p) {
+        UUID owner = p.ownerId();
+        if (owner == null || p.isRemoved() || p instanceof IcbmEntity || p instanceof BomberEntity b && b.hasReleased()) return;
+        int kind = S2C.Flight.TARGET_POINT, entity = S2C.Flights.NO_ENTITY;
+        String name = "";
+        Target t = p.target() == null ? null : p.target().subject();
+        if (t instanceof Target.OfEntity e) {
+            Entity ent = p.level() instanceof ServerLevel sl ? sl.getEntity(e.uuid()) : null;
+            if (ent != null) entity = ent.getId();
+            if (ent instanceof Player || ent != null && ent.hasCustomName()) {
+                kind = S2C.Flight.TARGET_NAMED;
+                name = ent.getName().getString();
+            } else if (ent != null) {
+                kind = S2C.Flight.TARGET_TYPE;
+                name = ent.getType().getDescriptionId();
+            }
+        } else if (t instanceof Target.OfSubLevel s) {
+            kind = S2C.Flight.TARGET_AIRCRAFT;
+            SubLevelAccess sub = SubLevels.containing(p.level(), s.plotPos());
+            String n = sub == null ? null : SubLevels.name(sub);
+            name = n == null ? "" : n;
+        }
+        if (name.length() > S2C.Flight.MAX_NAME) name = name.substring(0, S2C.Flight.MAX_NAME);
+        byOwner.computeIfAbsent(owner, k -> new ArrayList<>()).add(new S2C.Flight(p.getUUID(), p.weapon().id(), p.flightPhase().ordinal(),
+                p.etaTicks(), p.position(), p.aimPoint(), p.isNuclear(), kind, name, p.targetLost()));
+        targets.computeIfAbsent(owner, k -> new ArrayList<>()).add(entity);
+    }
+}

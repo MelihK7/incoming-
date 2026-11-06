@@ -1,0 +1,8 @@
+{
+  "values": [
+    "incoming:strike",
+    "incoming:shockwave",
+    "incoming:nuclear_blast",
+    "incoming:player_nuclear_blast"
+  ]
+}

@@ -1,0 +1,93 @@
+{
+  "project_id": "IuLUSNeU",
+  "slug": "incoming",
+  "title": "Incoming: Air Strikes & Nukes",
+  "description": "Aim with binoculars, call in drones, missiles or a bomber, and defend your base with a SAM. Includes nuclear strikes.",
+  "categories": [
+    "equipment",
+    "technology",
+    "game-mechanics"
+  ],
+  "additional_categories": [],
+  "client_side": "required",
+  "server_side": "required",
+  "license_id": "GPL-3.0-only",
+  "source_url": "https://github.com/zentixua/incoming",
+  "issues_url": "https://github.com/zentixua/incoming/issues",
+  "wiki_url": "https://github.com/zentixua/incoming/blob/main/docs/guide/README.md",
+  "icon": "docs/media/icon.png",
+  "gallery": [
+    {
+      "file": "docs/media/hero.webp",
+      "title": "Factory strike",
+      "description": "A missile salvo hits the factory.",
+      "featured": true
+    },
+    {
+      "file": "docs/media/nuke-dusk.webp",
+      "title": "Dusk nuclear strike",
+      "description": "Flash, rising cloud and the blast wave reaching the observer."
+    },
+    {
+      "file": "docs/media/factory-aftermath.jpg",
+      "title": "Factory aftermath",
+      "description": "Smoke and drifting dust after the missile salvo."
+    },
+    {
+      "file": "docs/media/blast-wave-dusk-hq.jpg",
+      "title": "Blast wave",
+      "description": "A dust wave rolls toward the observer beneath the mushroom cloud."
+    },
+    {
+      "file": "docs/guide/img/sam.webp",
+      "title": "Air defense",
+      "description": "A SAM site shoots down a drone raid."
+    },
+    {
+      "file": "docs/guide/img/launcher.webp",
+      "title": "Missile launch",
+      "description": "Cruise missiles take off from a runway."
+    },
+    {
+      "file": "docs/guide/img/weapon-shahed.jpg",
+      "title": "Shahed flight",
+      "description": "A drone on its way to the target."
+    },
+    {
+      "file": "docs/guide/img/weapon-lancet-launcher.jpg",
+      "title": "Lancet catapult",
+      "description": "Ready to launch from an airport."
+    },
+    {
+      "file": "docs/guide/img/weapon-grad.jpg",
+      "title": "Grad MLRS",
+      "description": "Ready for a rocket salvo."
+    },
+    {
+      "file": "docs/guide/img/weapon-b2.jpg",
+      "title": "B-2 bomber",
+      "description": "On its way to drop a bunker buster."
+    },
+    {
+      "file": "docs/guide/img/weapon-icbm.jpg",
+      "title": "ICBM ascent",
+      "description": "A ballistic missile in flight."
+    },
+    {
+      "file": "docs/guide/img/scope.png",
+      "title": "Binocular targeting",
+      "description": "Aim at anything you can see."
+    },
+    {
+      "file": "docs/guide/img/remote.png",
+      "title": "Strike remote",
+      "description": "Pick a weapon and set up a salvo."
+    },
+    {
+      "file": "docs/guide/img/map.png",
+      "title": "Targeting map",
+      "description": "Choose a target on the city map."
+    }
+  ],
+  "discord_url": null
+}
