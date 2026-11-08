@@ -205,7 +205,7 @@ public final class IncomingConfig {
             launchNearPlayer = b.comment("Shaheds and missiles take off from a mobile launcher near the player who launched them (off: they come in from afar).")
                     .translation("incoming.config.launch_near_player").define("launch_near_player", true);
             droneFlightTime = b.comment("Shahed flight from launch to target, seconds: a detour and an attack run from behind (never shorter than the direct path).")
-                    .translation("incoming.config.drone_flight_time").defineInRange("drone_flight_time", 35, 5, 600);
+                    .translation("incoming.config.drone_flight_time").defineInRange("drone_flight_time", 15, 5, 600);
             missileFlightTime = b.comment("Cruise missile flight from launch to target, seconds (never shorter than the direct path).")
                     .translation("incoming.config.missile_flight_time").defineInRange("missile_flight_time", 20, 5, 600);
             bomberFlightTime = b.comment("B-2 approach until bomb release, seconds.")
