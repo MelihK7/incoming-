@@ -11,6 +11,10 @@ paths:
 
 # Sound
 
+Blast-induced hearing loss and tinnitus are disabled in this independent checkout. `Deafness` is a neutral
+compatibility facade (gain/highs are always 1, no sound playback). The legacy `nuke_tinnitus` config key is inert.
+References below to its former filters describe historical integration, not an effect to re-enable.
+
 Crater fuel roar is `CraterFire`: continuous fire recording at native speed; level from `Sources.flame` and ISO 9613,
 duration and decay from `FuelPool.share` at emission time; starts from fuel-fire packet `S2C.FuelFire` at its cell
 centroid (aged from impact), not from the explosion packet (without a server, at impact position,

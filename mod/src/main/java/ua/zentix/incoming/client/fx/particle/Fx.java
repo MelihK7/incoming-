@@ -10,6 +10,7 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.client.event.RegisterParticleProvidersEvent;
 import ua.zentix.incoming.registry.ModParticles;
+import ua.zentix.incoming.client.fx.Fragments;
 
 /**
  * Effects particles: {@code Fx.smoke().at(…).vel(…).size(2, 9).life(200).color(…).spawn(level, x, y, z)}.
@@ -140,6 +141,7 @@ public final class Fx {
         float fadeFrom = 0.55f;
         float glow, glowTicks = 10;
         float drag = 0.96f;
+        double ballisticDrag;
         float rise, gravity, wind = 1, spin = 0.03f;
         /** Custom constant drift (blocks/tick²): blast wind, rather than shared particle wind. */
         float driftX, driftZ;
@@ -298,6 +300,18 @@ public final class Fx {
 
         public Spec gravity(float g) {
             gravity = g;
+            return this;
+        }
+
+        /**
+         * Small solid body: real gravity and quadratic air drag, using the same law as block fragments.
+         * Terminal fall speed is in m/s. Replaces rise and constant per-tick drag; world wind remains active.
+         */
+        public Spec ballistic(double terminalMps) {
+            if (!Double.isFinite(terminalMps) || terminalMps <= 0) throw new IllegalArgumentException("Positive finite terminal speed required");
+            ballisticDrag = Fragments.drag(terminalMps);
+            drag = 1;
+            rise = 0;
             return this;
         }
 

@@ -6,7 +6,7 @@ Six weapons, in the order the designator lists them. Each launch uses [munitions
 
 | | Shahed | Lancet | Missile | Grad | Bomb (B-2) | Nuclear (ICBM) |
 |---|---|---|---|---|---|---|
-| Time to impact | ≈50 s | approach plus ≈25 s circling | ≈30 s | 7–10 s | ≈40 s | 90 s |
+| Time to impact | ≈15 s | approach plus ≈10 s circling | ≈20 s | 7–10 s | ≈40 s | 90 s |
 | Warhead, TNT | 50 kg | 3 kg | ≈150 kg | 6.4 kg per rocket | 2.4 t, underground | 1 to 15 kt |
 | Follows a moving target | yes, through the camera | yes, through the camera | no | no | no | no |
 | Route on the map | yes | yes | yes | no | no | no |
@@ -467,6 +467,17 @@ Past your render distance the mod draws projectiles, blasts and smoke itself, as
 (8 km by default), launches included: the booster flame, the launch cloud and the smoke trail of a launch kilometres away. With **Distant Horizons** or **Voxy** the distant terrain hides them the way a real hill would: a
 blast behind a far ridge is hidden by the ridge, one in front of it is seen whole. This works with and without a shader
 pack. Without either mod there is no distant terrain to hide behind.
+
+## Glowing blast debris
+
+Shahed, Lancet, Grad and cruise-missile impacts, exposed B-2 bomb blasts and anti-aircraft bursts throw small
+white-gold embers outward. They slow, turn orange-red and fall in arcs as the world wind carries them sideways.
+They collide with terrain, cool quickly on contact and extinguish in water. Underwater and deeply buried blasts
+do not create a surface shower. These are cinematic samples of hot debris, not additional damaging projectiles
+or a claim that a warhead contains titanium. Nuclear effects keep their existing presentation.
+
+Each burst requests at most 64 embers and the entire client holds at most 512. Distance and the Minecraft particle
+setting reduce their count; no extra smoke particles are spawned along their paths.
 
 ## Flames and smoke trails
 

@@ -205,13 +205,13 @@ public final class IncomingConfig {
             launchNearPlayer = b.comment("Shaheds and missiles take off from a mobile launcher near the player who launched them (off: they come in from afar).")
                     .translation("incoming.config.launch_near_player").define("launch_near_player", true);
             droneFlightTime = b.comment("Shahed flight from launch to target, seconds: a detour and an attack run from behind (never shorter than the direct path).")
-                    .translation("incoming.config.drone_flight_time").defineInRange("drone_flight_time", 50, 5, 600);
+                    .translation("incoming.config.drone_flight_time").defineInRange("drone_flight_time", 15, 5, 600);
             missileFlightTime = b.comment("Cruise missile flight from launch to target, seconds (never shorter than the direct path).")
-                    .translation("incoming.config.missile_flight_time").defineInRange("missile_flight_time", 30, 5, 600);
+                    .translation("incoming.config.missile_flight_time").defineInRange("missile_flight_time", 20, 5, 600);
             bomberFlightTime = b.comment("B-2 approach until bomb release, seconds.")
                     .translation("incoming.config.bomber_flight_time").defineInRange("bomber_flight_time", 40, 5, 600);
             loiterTime = b.comment("How long a Lancet circles over the target before diving, seconds (±20% for each one in a salvo).")
-                    .translation("incoming.config.loiter_time").defineInRange("loiter_time", 25, 0, 600);
+                    .translation("incoming.config.loiter_time").defineInRange("loiter_time", 10, 0, 600);
             b.pop();
 
             b.translation("incoming.config.nuclear").push("nuclear");
@@ -370,9 +370,8 @@ public final class IncomingConfig {
                             "frame against 0.3-0.7 ms for FULL at 2560x1600 on an RTX 4060); FULL is finer close to small and fine-detailed flames.",
                             "It does not change the light of the fire on the world and smoke.")
                     .translation("incoming.config.bloom").defineEnum("bloom", Bloom.FAST);
-            nukeTinnitus = b.comment("Hearing damage from a blast wave strong enough to hurt the ears (from about 0.75 psi): muffled hearing and",
-                            "ringing ears that recover over game hours; from 5 psi torn eardrums, muffled for game weeks or until you die.")
-                    .translation("incoming.config.nuke_tinnitus").define("nuke_tinnitus", true);
+            nukeTinnitus = b.comment("Legacy compatibility option. Hearing damage and tinnitus are disabled, even if an old config sets this to true.")
+                    .translation("incoming.config.nuke_tinnitus").define("nuke_tinnitus", false);
             soundMuffling = b.comment("Strike sounds lose high tones with distance and are muffled behind hills and walls, with or without Sound Physics Remastered;",
                             "inside the nuclear dust pall, distant sounds are muffled too.")
                     .translation("incoming.config.sound_muffling").define("sound_muffling", true);

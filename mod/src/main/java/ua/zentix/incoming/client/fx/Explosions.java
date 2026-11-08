@@ -29,7 +29,7 @@ final class Explosions {
      * do not glow (≈500–700 K, {@code warhead.FragmentModel}) or smoke — nothing to burn: they are visible through hits
      * ({@link FragmentHits}). Burning piece and spark counts follow fireball radius r (est.) (as previously by visual radius).
      */
-    static void solids(ClientLevel level, Vec3 c, float r, boolean fuel, RandomSource rnd) {
+    static void solids(ClientLevel level, Vec3 c, float r, boolean fuel, boolean hotDebris, RandomSource rnd) {
         float k = Fx.density(c);
         int n;
         if (fuel) {
@@ -42,12 +42,18 @@ final class Explosions {
                         .streak(1.5f).trail(tail, 0.45f, 0.85f).spawn(level, c.add(0, r * 0.3, 0));
             }
         }
-        n = Math.round(60 * r / 4 * k) + 10;
+        // Presentation: the longer ember arcs replace part of the old instantaneous spark spray.
+        n = sparkCount(r, k, hotDebris);
         for (int i = 0; i < n; i++) {
             Vec3 d = dir(rnd, 0.0);
             Fx.spark().vel(d.scale(0.4 + rnd.nextDouble() * 1.3)).life(10 + rnd.nextInt(30)).gravity(0.04f).drag(0.96f)
                     .spawn(level, c.add(0, r * 0.3, 0));
         }
+    }
+
+    /** Legacy/no-weapon effects retain their exact spark count and random stream. */
+    static int sparkCount(float radius, float density, boolean hotDebris) {
+        return hotDebris ? Math.round(28 * radius / 4 * density) + 6 : Math.round(60 * radius / 4 * density) + 10;
     }
 
 
