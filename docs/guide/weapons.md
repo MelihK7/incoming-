@@ -468,6 +468,17 @@ Past your render distance the mod draws projectiles, blasts and smoke itself, as
 blast behind a far ridge is hidden by the ridge, one in front of it is seen whole. This works with and without a shader
 pack. Without either mod there is no distant terrain to hide behind.
 
+## Glowing blast debris
+
+Shahed, Lancet, Grad and cruise-missile impacts, exposed B-2 bomb blasts and anti-aircraft bursts throw small
+white-gold embers outward. They slow, turn orange-red and fall in arcs as the world wind carries them sideways.
+They collide with terrain, cool quickly on contact and extinguish in water. Underwater and deeply buried blasts
+do not create a surface shower. These are cinematic samples of hot debris, not additional damaging projectiles
+or a claim that a warhead contains titanium. Nuclear effects keep their existing presentation.
+
+Each burst requests at most 64 embers and the entire client holds at most 512. Distance and the Minecraft particle
+setting reduce their count; no extra smoke particles are spawned along their paths.
+
 ## Flames and smoke trails
 
 Every engine flame and smoke trail is worked out from the motor's data, the same way for every weapon, and looks the

@@ -1,6 +1,7 @@
 package ua.zentix.incoming.client.fx.particle;
 
 import ua.zentix.incoming.client.fx.ClientAir;
+import ua.zentix.incoming.client.fx.Fragments;
 import ua.zentix.incoming.util.Air;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.renderer.LevelRenderer;
@@ -10,6 +11,7 @@ import net.minecraft.core.SectionPos;
 import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Vector3f;
@@ -43,6 +45,9 @@ public final class FxParticle {
     private float r0, g0, b0, r1, g1, b1, colorCurve, alpha;
     private int fadeIn, fadeAfter;
     private float fadeFrom, glow, glowTicks, drag, rise, gravity, wind, driftX, driftZ;
+    private double ballisticDrag;
+    /** Allocated only for a pooled body that has used quadratic flight; reused on later births. */
+    private double[] ballisticVelocity;
     private Fx.@org.jetbrains.annotations.Nullable Thermal thermal;
     private boolean paper, prelit;
     /** Emissive overexposure ({@link Fx.Spec#hdr}). */
@@ -91,6 +96,8 @@ public final class FxParticle {
         glow = s.glow;
         glowTicks = s.glowTicks;
         drag = s.drag;
+        ballisticDrag = s.ballisticDrag;
+        if (ballisticDrag > 0 && ballisticVelocity == null) ballisticVelocity = new double[3];
         rise = s.rise;
         gravity = s.gravity;
         wind = s.wind;
@@ -135,20 +142,40 @@ public final class FxParticle {
             dead = true;
             return;
         }
-        // hot matter rises quickly, cooled matter barely rises
-        if (thermal != null) yd = thermal.lift(age) - thermal.lift(age - 1);
-        else yd += rise * (0.15 + 0.85 * Math.exp(-age / 40.0)) - gravity;
-        // world wind: air pulls the particle toward its velocity (steady state — wind speed × windage)
         Air air = ClientAir.now();
-        double push = wind == 0 ? 0 : air.speed(y) / 20 * wind * (1 - drag) / drag;
-        xd += air.wind().x() * push + driftX;
-        zd += air.wind().z() * push + driftZ;
+        if (ballisticDrag > 0) {
+            ballisticVelocity[0] = xd;
+            ballisticVelocity[1] = yd;
+            ballisticVelocity[2] = zd;
+            double speed = air.speed(y) / 20 * wind;
+            Fragments.step(ballisticVelocity, air.wind().x() * speed, 0, air.wind().z() * speed, ballisticDrag);
+            xd = ballisticVelocity[0];
+            yd = ballisticVelocity[1];
+            zd = ballisticVelocity[2];
+        } else {
+            // hot gas rises; ordinary particles use their existing linear-drag wind law
+            if (thermal != null) yd = thermal.lift(age) - thermal.lift(age - 1);
+            else yd += rise * (0.15 + 0.85 * Math.exp(-age / 40.0)) - gravity;
+            double push = wind == 0 ? 0 : air.speed(y) / 20 * wind * (1 - drag) / drag;
+            xd += air.wind().x() * push + driftX;
+            zd += air.wind().z() * push + driftZ;
+        }
         if (kind == Fx.Kind.FLAKE && !onGround) {
             // flakes swirl while falling
             xd += 0.003 * Mth.sin(age * 0.21f + variant);
             zd += 0.003 * Mth.cos(age * 0.17f + variant * 1.3f);
         }
         move(level, xd, yd, zd);
+        if (ballisticDrag > 0 && touchesFluid(level, new Vec3(xo, yo, zo), new Vec3(x, y, z))) {
+            // Sweep the actual clipped movement: a fast grain cannot pass through a thin waterfall while still glowing.
+            dead = true;
+            return;
+        }
+        if (ballisticDrag > 0 && stopped) {
+            // Contact cools a glowing speck quickly. No renewed movement, tunnelling or endless floor glitter.
+            xd = yd = zd = 0;
+            life = Math.min(life, age + 10);
+        }
         xd *= drag;
         yd *= drag;
         zd *= drag;
@@ -162,6 +189,12 @@ public final class FxParticle {
         }
         worldLight = light(level);
         if (kind == Fx.Kind.SPARK && trail != null) tail(level, pool);
+    }
+
+    static boolean touchesFluid(BlockGetter level, Vec3 from, Vec3 to) {
+        if (from.equals(to)) return !level.getFluidState(BlockPos.containing(from)).isEmpty();
+        return BlockGetter.traverseBlocks(from, to, level,
+                (world, pos) -> world.getFluidState(pos).isEmpty() ? null : Boolean.TRUE, world -> Boolean.FALSE);
     }
 
     /** Spark smoke tail: billows along one tick's path while the fragment is hot. */

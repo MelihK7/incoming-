@@ -61,13 +61,19 @@ public final class BlastEffects {
             // fragments belong only to the weapon warhead; a blast without a weapon in its packet (secondary explosions after the nuke, replays
             // predating this field) has no casing
             Vec3 axis = p.weapon() == S2C.Blast.NO_WEAPON ? null : p.axis();
+            boolean hotDebris = hotDebris(p);
             switch (p.kind()) {
-                case S2C.Blast.MISSILE -> Effects.add(new Missile(p.pos(), mat, p.seed(), axis, cloud));
-                case S2C.Blast.BUNKER -> Effects.add(new Bunker(p.pos(), mat, p.surfaceY(), p.seed(), cloud));
-                case S2C.Blast.ROCKET -> Effects.add(new Drone(p.pos(), mat, p.seed(), axis, true, cloud));
-                default -> Effects.add(new Drone(p.pos(), mat, p.seed(), axis, false, cloud));
+                case S2C.Blast.MISSILE -> Effects.add(new Missile(p.pos(), mat, p.seed(), axis, cloud, hotDebris));
+                case S2C.Blast.BUNKER -> Effects.add(new Bunker(p.pos(), mat, p.surfaceY(), p.seed(), cloud, hotDebris));
+                case S2C.Blast.ROCKET -> Effects.add(new Drone(p.pos(), mat, p.seed(), axis, true, cloud, hotDebris));
+                default -> Effects.add(new Drone(p.pos(), mat, p.seed(), axis, false, cloud, hotDebris));
             }
         }
+    }
+
+    /** Nuclear secondaries and recordings without a weapon retain their previous visuals. */
+    static boolean hotDebris(S2C.Blast packet) {
+        return packet.weapon() != S2C.Blast.NO_WEAPON && !GroundMaterial.byId(packet.material()).isWater();
     }
 
     /**
@@ -443,12 +449,14 @@ public final class BlastEffects {
         /** MLRS rocket: its own sound — a dry burst. */
         private final boolean rocket;
         private final FragmentQueue fragments;
+        private final boolean hotDebris;
 
-        Drone(Vec3 pos, GroundMaterial mat, long seed, @Nullable Vec3 axis, boolean rocket, CloudModel model) {
+        Drone(Vec3 pos, GroundMaterial mat, long seed, @Nullable Vec3 axis, boolean rocket, CloudModel model, boolean hotDebris) {
             super(pos, mat, seed, model.source);
             this.rocket = rocket;
             this.model = model;
             this.fragments = new FragmentQueue(pos, axis, seed, model.source);
+            this.hotDebris = hotDebris;
         }
 
         /** Model fireball radius, blocks: drives fragments, sparks and tongues of flame. */
@@ -461,7 +469,8 @@ public final class BlastEffects {
             fragments.tick(level, t, random);
             if (t == 0) {
                 flash(level, model);
-                Explosions.solids(level, pos, radius(), model.source.fuelKg() > 0, random);
+                Explosions.solids(level, pos, radius(), model.source.fuelKg() > 0, hotDebris, random);
+                if (hotDebris) EmberBurst.emit(level, pos, model.source.chargeKg(), model.source.surface(), EmberBurst.random(seed));
                 litter(level, model);
                 Particles.burst(level, ParticleTypes.LAVA, pos.add(0, 1, 0), 2, 1, 2, 0, 30);
                 return true;
@@ -508,6 +517,7 @@ public final class BlastEffects {
             if (t == 0) {
                 flash(level, model);
                 // warhead casing fragments as sparks
+                EmberBurst.emit(level, pos, model.source.chargeKg(), false, EmberBurst.random(seed));
                 for (int i = 0; i < 30; i++) {
                     Fx.spark().vel(Explosions.dir(random, -1).scale(0.6 + random.nextDouble() * 1.2)).life(8 + random.nextInt(14)).gravity(0.03f)
                             .spawn(level, pos);
@@ -527,11 +537,13 @@ public final class BlastEffects {
         private final CloudModel model;
 
         private final FragmentQueue fragments;
+        private final boolean hotDebris;
 
-        Missile(Vec3 pos, GroundMaterial mat, long seed, @Nullable Vec3 axis, CloudModel model) {
+        Missile(Vec3 pos, GroundMaterial mat, long seed, @Nullable Vec3 axis, CloudModel model, boolean hotDebris) {
             super(pos, mat, seed, model.source);
             this.model = model;
             this.fragments = new FragmentQueue(pos, axis, seed, model.source);
+            this.hotDebris = hotDebris;
         }
 
         float radius() {
@@ -543,7 +555,8 @@ public final class BlastEffects {
             fragments.tick(level, t, random);
             if (t == 0) {
                 flash(level, model);
-                Explosions.solids(level, pos, radius(), model.source.fuelKg() > 0, random);
+                Explosions.solids(level, pos, radius(), model.source.fuelKg() > 0, hotDebris, random);
+                if (hotDebris) EmberBurst.emit(level, pos, model.source.chargeKg(), model.source.surface(), EmberBurst.random(seed));
                 litter(level, model);
                 Particles.burst(level, ParticleTypes.LAVA, pos.add(0, 1, 0), 4, 2, 4, 0, 80);
                 return true;
@@ -568,14 +581,16 @@ public final class BlastEffects {
         /** Breakout cloud ({@link FarBlasts#add}); null — underground blast. */
         @Nullable
         private final CloudModel cloud;
+        private final boolean hotDebris;
 
-        Bunker(Vec3 pos, GroundMaterial mat, float surfaceY, long seed, @Nullable CloudModel cloud) {
+        Bunker(Vec3 pos, GroundMaterial mat, float surfaceY, long seed, @Nullable CloudModel cloud, boolean hotDebris) {
             super(new Vec3(pos.x, surfaceY, pos.z), mat, seed, BlastSource.buried(pos.y, surfaceY));
             this.charge = pos;
             this.surface = new Vec3(pos.x, surfaceY, pos.z);
             this.depth = BunkerCover.depth((int) surfaceY, charge.y);
             this.law = BlastSource.law(pos.y, surfaceY);
             this.cloud = cloud;
+            this.hotDebris = hotDebris;
         }
 
         /**
@@ -588,6 +603,7 @@ public final class BlastEffects {
                 if (cloud != null) {
                     // flash above the crater, clods from the law's ejecta crater (dug by the server)
                     flash(level, cloud);
+                    if (hotDebris) EmberBurst.emit(level, pos, cloud.source.chargeKg(), true, EmberBurst.random(seed));
                     CraterModel.Soil soil = mat.soil();
                     pieces(level, new Ejecta(law.craterRadius(soil), 0, 0), pos, UP, law.craterVolume(soil));
                 } else {

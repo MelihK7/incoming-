@@ -25,7 +25,9 @@ public enum FxBudget {
     /** Sparks. */
     SPARK(15360),
     /** Ash, paper and small debris falling around the camera after a nuclear wave (like weather). */
-    ASH(3072);
+    ASH(3072),
+    /** Long-lived glowing blast fragments; isolated from the short spark and smoke budgets. */
+    EMBER(512);
 
     final int limit;
 
