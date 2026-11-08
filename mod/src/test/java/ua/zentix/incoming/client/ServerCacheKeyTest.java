@@ -15,6 +15,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeFalse;
 
 class ServerCacheKeyTest {
     @TempDir
@@ -156,12 +157,18 @@ class ServerCacheKeyTest {
         }
         assertEquals(saved, Files.readString(terrain));
         assertEquals("other dimension", Files.readString(otherDimension));
-        assertFalse(Files.exists(root.resolve(ServerCacheKey.fromAddress(first).key())), "new empty folder does not appear");
+        // On case-insensitive filesystems the canonical spelling can already name the legacy folder.
+        // Count actual directories instead: saving must never create a second, empty cache.
+        try (var children = Files.list(root)) {
+            assertEquals(1L, children.count(), "no additional cache folder appears");
+        }
     }
 
     @Test
     void multipleLegacyFoldersHaveTheSamePriorityForEveryAddressSpelling() throws IOException {
         Files.createDirectory(root.resolve("hOsT_25565"));
+        assumeFalse(Files.exists(root.resolve("HOST_25565")),
+                "case-only sibling folders require a case-sensitive filesystem");
         Path upper = Files.createDirectory(root.resolve("HOST_25565"));
         String[] addresses = {"host", "HOST:25565", "hOsT:25565", "HOST"};
         for (String address : addresses) {
@@ -174,6 +181,15 @@ class ServerCacheKeyTest {
         Path unported = Files.createDirectory(root.resolve("HOST"));
         for (String address : addresses) {
             assertEquals(unported, ServerCacheKey.fromAddress(address).directory(root));
+        }
+    }
+
+    @Test
+    void unportedLegacyFolderWinsOverExplicitDefaultPortOnEveryFilesystem() throws IOException {
+        Files.createDirectory(root.resolve("HOST_25565"));
+        Path unported = Files.createDirectory(root.resolve("HOST"));
+        for (String address : new String[]{"host", "HOST:25565", "hOsT:25565", "HOST"}) {
+            assertTrue(Files.isSameFile(unported, ServerCacheKey.fromAddress(address).directory(root)));
         }
     }
 
